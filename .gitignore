@@ -1,0 +1,6 @@
+frontend/
+*.pdf
+staticfiles/
+__pycache__/
+*.pyc
+media/
