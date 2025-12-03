@@ -10,7 +10,7 @@ SECRET_KEY = "your-secret-key"
 
 DEBUG = False
 
-ALLOWED_HOSTS = ["*",".railway.app"]
+ALLOWED_HOSTS = ["*"]
 
 # Applications
 INSTALLED_APPS = [
@@ -45,6 +45,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 # Root URL Configuration (MISSING earlier — now added)
@@ -106,6 +107,7 @@ STATICFILES_DIRS = [
 ]
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Default primary key type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
