@@ -25,14 +25,12 @@ INSTALLED_APPS = [
     # 3rd party apps
     "rest_framework",
     "corsheaders",
-    
 
     # Local apps
     "employees",
     "attendance",
     "payroll",
     "leave",
-
 ]
 
 # Middleware
@@ -48,7 +46,7 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
-# Root URL Configuration (MISSING earlier — now added)
+# Root URL Configuration
 ROOT_URLCONF = "hrms.urls"
 
 # Templates
@@ -80,24 +78,22 @@ REST_FRAMEWORK = {
 }
 
 CRONJOBS = [
-    ('0 0 1 * *', 'payroll.cron.generate_monthly_payroll'),
+    ("0 0 1 * *", "payroll.cron.generate_monthly_payroll"),
 ]
-
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True
 
-# Database (PostgreSQL)
+# --------------------- DATABASE ---------------------
+# Use SQLite so it works both locally and on Render without extra setup.
+# (All your models, APIs and features stay the same.)
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "hrms_db",
-        "USER": "postgres",
-        "PASSWORD": "root",
-        "HOST": "localhost",
-        "PORT": "5432",
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+# ----------------------------------------------------
 
 # Static files
 STATIC_URL = "/static/"
@@ -115,8 +111,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CELERY_BEAT_SCHEDULE = {
     "generate-monthly-payroll-on-1st": {
         "task": "payroll.tasks.generate_monthly_payroll",
-        "schedule": crontab(day_of_month=1, hour=1, minute=0),  # 1st of every month at 01:00
-        "args": (),  # year/month auto-picked in task
+        "schedule": crontab(day_of_month=1, hour=1, minute=0),
+        "args": (),
     },
 }
 
@@ -134,4 +130,3 @@ EMAIL_HOST_USER = "ntanithasaravanan@gmail.com"
 EMAIL_HOST_PASSWORD = "ebxj uouc mhcm pycr"
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-
