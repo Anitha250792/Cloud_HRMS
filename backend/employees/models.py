@@ -3,6 +3,17 @@ from django.db import models
 class Employee(models.Model):
     emp_code = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=150)
+
+    # Correct status field with proper choices
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("Active", "Active"),
+            ("Inactive", "Inactive")
+        ],
+        default="Active"
+    )
+
     email = models.EmailField(unique=True)
     department = models.CharField(max_length=100)
     role = models.CharField(max_length=100)
