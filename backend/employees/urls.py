@@ -1,8 +1,14 @@
 from django.urls import path
-from rest_framework.routers import DefaultRouter
-from .views import EmployeeViewSet
+from .views import (
+    list_employees,
+    create_employee,
+    delete_employee,
+    update_employee,
+)
 
-router = DefaultRouter()
-router.register(r'employees', EmployeeViewSet, basename='employees')
-
-urlpatterns = router.urls
+urlpatterns = [
+    path("", list_employees),
+    path("create/", create_employee),
+    path("update/<int:pk>/", update_employee),   # ✅ ADD THIS
+    path("delete/<int:pk>/", delete_employee),
+]

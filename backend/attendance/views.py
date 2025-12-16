@@ -1,35 +1,41 @@
 from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
-from datetime import date, timedelta
+from datetime import date
 from calendar import monthrange
 
 from .models import Attendance
-from .serializers import AttendanceSerializer
+from .serializers import AttendanceSerializer, AttendanceRecordSerializer
 from employees.models import Employee
 
 
-# -----------------------------
-#   MAIN VIEWSET (CRUD + Check-in/out + Summaries)
-# -----------------------------
+# ==========================================================
+# ATTENDANCE VIEWSET (Employee + HR)
+# ==========================================================
 class AttendanceViewSet(viewsets.ModelViewSet):
     queryset = Attendance.objects.all().order_by("-id")
     serializer_class = AttendanceSerializer
+    permission_classes = [IsAuthenticated]
 
-    # ---------- CHECK-IN ----------
+    # ---------------- CHECK-IN ----------------
     @action(methods=["post"], detail=False)
     def check_in(self, request):
-        emp_id = request.data.get("employee_id")
-
         try:
-            employee = Employee.objects.get(id=emp_id)
+            employee = Employee.objects.get(user=request.user)
         except Employee.DoesNotExist:
-            return Response({"error": "Employee not found"}, status=404)
+            return Response({"error": "Employee profile not found"}, status=404)
+
+        today = timezone.localdate()
+
+        if Attendance.objects.filter(employee=employee, date=today).exists():
+            return Response({"error": "Already checked in today"}, status=400)
 
         attendance = Attendance.objects.create(
             employee=employee,
-            check_in=timezone.now(),
+            date=today,
+            check_in=timezone.now()
         )
 
         return Response({
@@ -37,20 +43,20 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             "data": AttendanceSerializer(attendance).data
         })
 
-    # ---------- CHECK-OUT ----------
+
+    # ---------------- CHECK-OUT ----------------
     @action(methods=["post"], detail=False)
     def check_out(self, request):
-        emp_id = request.data.get("employee_id")
-
         try:
-            employee = Employee.objects.get(id=emp_id)
+            employee = Employee.objects.get(user=request.user)
         except Employee.DoesNotExist:
-            return Response({"error": "Employee not found"}, status=404)
+            return Response({"error": "Employee profile not found"}, status=404)
 
         attendance = Attendance.objects.filter(
             employee=employee,
+            date=timezone.localdate(),
             check_out__isnull=True
-        ).last()
+        ).first()
 
         if not attendance:
             return Response({"error": "No active check-in found"}, status=400)
@@ -63,103 +69,93 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             "data": AttendanceSerializer(attendance).data
         })
 
-    # ---------- TODAY SUMMARY ----------
+
+    # ---------------- HR DAILY LOGS ----------------
     @action(detail=False, methods=["get"])
-    def summary_today(self, request):
-        today = date.today()
-        total_employees = Employee.objects.count()
+    def daily_logs(self, request):
+        if request.user.role != "HR":
+            return Response({"error": "Unauthorized"}, status=403)
 
-        present = Attendance.objects.filter(date=today).values("employee").distinct().count()
-        absent = total_employees - present
+        date_filter = request.GET.get("date", timezone.localdate())
+        logs = Attendance.objects.filter(date=date_filter)
 
-        late = Attendance.objects.filter(
-            date=today,
-            check_in__gt=timezone.datetime(today.year, today.month, today.day, 9, 30)
-        ).count()
+        serializer = AttendanceRecordSerializer(logs, many=True)
+        return Response(serializer.data)
 
-        return Response({
-            "date": str(today),
-            "total_employees": total_employees,
-            "present_today": present,
-            "absent_today": absent,
-            "late_employees": late,
-        })
 
-    # ---------- MONTH SUMMARY ----------
+    # ---------------- HR MONTH SUMMARY ----------------
     @action(detail=False, methods=["get"])
     def summary_month(self, request):
-        month = int(request.GET.get("month", date.today().month))
-        year = int(request.GET.get("year", date.today().year))
+        if request.user.role != "HR":
+            return Response({"error": "Unauthorized"}, status=403)
 
-        start = date(year, month, 1)
-        end = (start.replace(day=28) + timedelta(days=4)).replace(day=1)
+        month = int(request.GET.get("month", timezone.localdate().month))
+        year = int(request.GET.get("year", timezone.localdate().year))
 
-        records = Attendance.objects.filter(date__gte=start, date__lt=end)
-
-        present_days = records.values("date").distinct().count()
-
-        total_hours = sum(
-            [
-                (rec.check_out - rec.check_in).total_seconds() / 3600
-                for rec in records if rec.check_out
-            ],
-            0
+        records = Attendance.objects.filter(
+            date__year=year,
+            date__month=month
         )
+
+        total_hours = sum(float(r.working_hours) for r in records)
+        present_days = records.values("employee", "date").distinct().count()
 
         return Response({
             "year": year,
             "month": month,
-            "total_present_days": present_days,
+            "present_days": present_days,
             "total_hours_worked": round(total_hours, 2),
         })
 
 
-# -----------------------------
-#   TODAY SUMMARY (API standalone)
-# -----------------------------
+# ==========================================================
+# EMPLOYEE DASHBOARD APIs
+# ==========================================================
+@api_view(["GET"])
+def my_today_attendance(request):
+    if not request.user.is_authenticated:
+        return Response({"error": "Unauthorized"}, status=401)
+
+    try:
+        employee = Employee.objects.get(user=request.user)
+    except Employee.DoesNotExist:
+        return Response({"status": "NO_EMPLOYEE"})
+
+    today = timezone.localdate()
+    record = Attendance.objects.filter(employee=employee, date=today).first()
+
+    if not record:
+        return Response({"status": "NOT_MARKED"})
+
+    status = "PRESENT"
+    if record.check_in and not record.check_out and record.check_in.hour > 10:
+        status = "LATE"
+
+    return Response({
+        "status": status,
+        "check_in": record.check_in,
+        "check_out": record.check_out,
+        "working_hours": record.working_hours,
+    })
+
+
+# ==========================================================
+# HR DASHBOARD APIs
+# ==========================================================
 @api_view(["GET"])
 def attendance_summary_today(request):
     today = timezone.localdate()
-    total_employees = Employee.objects.count()
-
-    present = Attendance.objects.filter(date=today).count()
-    absent = total_employees - present
+    total = Employee.objects.count()
+    present = Attendance.objects.filter(date=today).values("employee").distinct().count()
 
     return Response({
         "date": today,
-        "total_employees": total_employees,
+        "total_employees": total,
         "present_employees": present,
-        "absent_employees": absent
+        "absent_employees": total - present
     })
 
 
-# -----------------------------
-#   MONTH SUMMARY (API standalone)
-# -----------------------------
-@api_view(["GET"])
-def attendance_summary_month(request):
-    today = timezone.localdate()
-    year = today.year
-    month = today.month
-
-    present_days = Attendance.objects.filter(
-        date__year=year,
-        date__month=month
-    ).count()
-
-    working_days = 22   # optional, can compute dynamically later
-
-    return Response({
-        "month": month,
-        "year": year,
-        "working_days": working_days,
-        "total_attendance_marked": present_days,
-    })
-
-
-# -----------------------------
-#   HEATMAP API
-# -----------------------------
 @api_view(["GET"])
 def attendance_heatmap(request, emp_id, year, month):
     try:
@@ -167,46 +163,48 @@ def attendance_heatmap(request, emp_id, year, month):
     except Employee.DoesNotExist:
         return Response({"error": "Employee not found"}, status=404)
 
-    days_in_month = monthrange(year, month)[1]
+    days = monthrange(year, month)[1]
     heatmap = []
 
-    for day in range(1, days_in_month + 1):
-        current_date = date(year, month, day)
+    for d in range(1, days + 1):
+        current = date(year, month, d)
+        record = Attendance.objects.filter(employee=employee, date=current).first()
 
-        record = Attendance.objects.filter(employee=employee, date=current_date).first()
-
-        if record:
-            if record.check_in and not record.check_out:
-                status_code = "LATE" if record.check_in.hour > 10 else "PRESENT"
-            elif record.check_in and record.check_out:
-                status_code = "PRESENT"
-            else:
-                status_code = "ABSENT"
+        if not record:
+            status = "ABSENT"
+        elif record.check_in and not record.check_out:
+            status = "HALF_DAY"
         else:
-            status_code = "ABSENT"
+            status = "PRESENT"
 
-        heatmap.append({
-            "date": current_date,
-            "status": status_code
-        })
+        heatmap.append({"date": current, "status": status})
 
     return Response(heatmap)
 
 
-# -----------------------------
-#   REAL-TIME CHECK-IN FEED
-# -----------------------------
 @api_view(["GET"])
 def realtime_checkins(request):
-    latest = Attendance.objects.order_by("-check_in")[:10]
+    if request.user.role != "HR":
+        return Response({"error": "Unauthorized"}, status=403)
 
-    data = [
+    latest = Attendance.objects.select_related("employee").order_by("-check_in")[:10]
+
+    return Response([
         {
-            "employee": item.employee.name,
-            "check_in": item.check_in,
-            "check_out": item.check_out,
+            "employee": att.employee.name,
+            "check_in": att.check_in,
+            "check_out": att.check_out,
+            "working_hours": att.working_hours,
         }
-        for item in latest
-    ]
+        for att in latest
+    ])
 
-    return Response(data)
+
+@api_view(["GET"])
+def attendance_records(request):
+    if request.user.role != "HR":
+        return Response({"error": "Unauthorized"}, status=403)
+
+    records = Attendance.objects.select_related("employee").order_by("-date", "-id")
+    serializer = AttendanceRecordSerializer(records, many=True)
+    return Response(serializer.data)

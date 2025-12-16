@@ -1,8 +1,13 @@
 from django.urls import path
 from .views_pdf import download_payslip
 from . import views
+from .views import payroll_list
 
 urlpatterns = [
+    path("", payroll_list),
+    # payroll/urls.py
+    path("my/", views.my_payrolls),
+
     path("summary/", views.payroll_summary),
     path("stats/", views.payroll_chart),
 

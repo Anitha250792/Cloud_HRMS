@@ -1,38 +1,27 @@
-from django.contrib import admin
+from django.contrib import admin 
 from django.urls import path, include
-from django.http import HttpResponse
-from rest_framework.routers import DefaultRouter
-
-# Correct ViewSets
-from employees.views import EmployeeViewSet
-from attendance.views import AttendanceViewSet
-from leave.views import LeaveViewSet
-from payroll.views import PayrollViewSet
-
-# Correct import for google login
-from auth.google_login import google_login
-
-# Router Registration
-router = DefaultRouter()
-router.register(r'employees', EmployeeViewSet, basename='employees')
-router.register(r'attendance', AttendanceViewSet, basename='attendance')
-router.register(r'leaves', LeaveViewSet, basename='leaves')
-router.register(r'payroll', PayrollViewSet, basename='payroll')
+from .views import RoleRedirectView
+from auth.views import google_login            # ✔ your google view
+from employees.auth_api import RegisterAPIView
 
 urlpatterns = [
-    path('', lambda request: HttpResponse("HRMS Backend Running 🚀")),
+    path("", RoleRedirectView.as_view(), name="root"),
 
-    path('admin/', admin.site.urls),
+    # Django admin
+    path("admin/", admin.site.urls),
 
-    # Main auto-generated API routes
-    path('api/', include(router.urls)),
+    # AUTH ROUTES (local login + logout + refresh)
+    path("api/auth/", include("auth.urls")),
 
-    # Custom module URLs
-    path("api/leaves/", include("leave.urls")),
-    path("api/payroll/", include("payroll.urls")),
-    path("api/attendance/", include("attendance.urls")),
-    path("api/scheduler/", include("scheduler.urls")),
+    # Custom register with role
+    path("api/auth/register/", RegisterAPIView.as_view(), name="custom-register"),
 
-    # Google Login
+    # GOOGLE LOGIN — ✔ only ONE route
     path("api/auth/google/", google_login),
+
+    # BUSINESS APIs
+    path("api/employees/", include("employees.urls")),
+    path("api/attendance/", include("attendance.urls")),
+    path("api/payroll/", include("payroll.urls")),
+    path("api/leave/", include("leave.urls")),
 ]

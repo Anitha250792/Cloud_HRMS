@@ -25,4 +25,4 @@ class Leave(models.Model):
     applied_on = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.employee.name} - {self.leave_type} ({self.status})"
+        return f"{self.employee.emp_code} - {self.leave_type}"
