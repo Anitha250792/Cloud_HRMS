@@ -4,3 +4,7 @@ staticfiles/
 __pycache__/
 *.pyc
 media/
+*.yaml
+*.yml
+render.yaml
+
