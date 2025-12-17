@@ -1,4 +1,13 @@
-frontend/
+# Ignore node modules
+frontend/node_modules/
+
+# Ignore frontend build (optional – safe)
+frontend/build/
+
+# Allow public assets
+!frontend/public/
+!frontend/public/_redirects
+
 *.pdf
 staticfiles/
 __pycache__/
