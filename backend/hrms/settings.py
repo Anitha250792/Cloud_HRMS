@@ -13,7 +13,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # 🔐 CORE SETTINGS
 # ======================================================
 
-SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-dev-key")
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+if not SECRET_KEY:
+    raise Exception("SECRET_KEY is not set")
+
 
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
@@ -149,13 +153,23 @@ SIMPLE_JWT = {
 # 🗄 DATABASE (Render SAFE)
 # ======================================================
 
-DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
-        ssl_require=not DEBUG,
-    )
-}
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=True,
+        )
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 # ======================================================
 # 📁 STATIC FILES
