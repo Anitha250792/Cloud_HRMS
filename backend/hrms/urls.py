@@ -3,6 +3,10 @@ from django.urls import path, include
 from .views import RoleRedirectView
 from auth.views import google_login            # ✔ your google view
 from employees.auth_api import RegisterAPIView
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 urlpatterns = [
     path("", RoleRedirectView.as_view(), name="root"),
@@ -24,4 +28,6 @@ urlpatterns = [
     path("api/attendance/", include("attendance.urls")),
     path("api/payroll/", include("payroll.urls")),
     path("api/leave/", include("leave.urls")),
+    path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 ]
