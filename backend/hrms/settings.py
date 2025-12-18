@@ -2,16 +2,31 @@ import os
 from pathlib import Path
 from datetime import timedelta
 from celery.schedules import crontab
+import dj_database_url
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "your-secret-key"
+# ======================================================
+# 🔐 CORE SETTINGS
+# ======================================================
 
-DEBUG = True
+SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-dev-key")
 
-ALLOWED_HOSTS = ["*"]
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
-# ================= ✅ INSTALLED APPS =================
+ALLOWED_HOSTS = os.getenv(
+    "ALLOWED_HOSTS",
+    "cloud-hrms-1.onrender.com,localhost,127.0.0.1"
+).split(",")
+
+SITE_ID = 1
+
+# ======================================================
+# 📦 INSTALLED APPS (UNCHANGED FEATURES)
+# ======================================================
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -29,7 +44,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_crontab",
 
-    # # # Auth
+    # Auth
     "dj_rest_auth",
     "dj_rest_auth.registration",
     "allauth",
@@ -43,30 +58,31 @@ INSTALLED_APPS = [
     "payroll",
     "leave",
     "accounts",
-    
 ]
 
-SITE_ID = 1
-
-# ================= ✅ MIDDLEWARE =================
+# ======================================================
+# 🧱 MIDDLEWARE
+# ======================================================
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
 
-    "allauth.account.middleware.AccountMiddleware",  # ✅ REQUIRED
+    "allauth.account.middleware.AccountMiddleware",
 
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
-
-# ================= ✅ URL + TEMPLATES =================
+# ======================================================
+# 🌐 URL / TEMPLATES
+# ======================================================
 
 ROOT_URLCONF = "hrms.urls"
 
@@ -88,91 +104,23 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "hrms.wsgi.application"
 
-# ================= ✅ REST + JWT =================
+# ======================================================
+# 🔐 AUTH / USER
+# ======================================================
 
-REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    )
-}
+AUTH_USER_MODEL = "accounts.User"
 
-# ================= ✅ DATABASE (Render Safe) =================
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
-
-# ================= ✅ STATIC FILES =================
-
-STATIC_URL = "/static/"
-# STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# ================= ✅ CORS =================
-
-CORS_ALLOW_ALL_ORIGINS = True
-
-CORS_ALLOW_METHODS = [
-    "GET",
-    "POST",
-    "PUT",
-    "PATCH",
-    "DELETE",
-    "OPTIONS",
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
-
-CORS_ALLOW_HEADERS = [
-    "authorization",
-    "content-type",
-    "accept",
-    "origin",
-    "user-agent",
-    "x-csrftoken",
-    "x-requested-with",
-]
-
-
-# ================= ✅ CRON =================
-
-CRONJOBS = [
-    ("0 0 1 * *", "payroll.cron.generate_monthly_payroll"),
-]
-
-# ================= ✅ CELERY =================
-
-CELERY_BEAT_SCHEDULE = {
-    "generate-monthly-payroll-on-1st": {
-        "task": "payroll.tasks.generate_monthly_payroll",
-        "schedule": crontab(day_of_month=1, hour=1, minute=0),
-        "args": (),
-    },
-}
-
-CELERY_BROKER_URL = "redis://localhost:6379/0"
-CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
-CELERYD_FORCE_EXECV = True
-CELERY_WORKER_POOL = "solo"
-
-# ================= ✅ EMAIL =================
-
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_HOST_USER = "ntanithasaravanan@gmail.com"
-EMAIL_HOST_PASSWORD = "ebxj uouc mhcm pycr"
-EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 LOGIN_URL = "/admin/login/"
-
-LOGIN_REDIRECT_URL = "/login-redirect/"
+LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
+
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
@@ -181,22 +129,85 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
-AUTH_USER_MODEL = 'accounts.User'
+# ======================================================
+# 🔑 JWT / REST
+# ======================================================
 
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+}
 
-AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",  # ✅ Default
-    "allauth.account.auth_backends.AuthenticationBackend",  
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+# ======================================================
+# 🗄 DATABASE (Render SAFE)
+# ======================================================
+
+DATABASES = {
+    "default": dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+        ssl_require=not DEBUG,
+    )
+}
+
+# ======================================================
+# 📁 STATIC FILES
+# ======================================================
+
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ======================================================
+# 🌍 CORS + CSRF (Frontend SAFE)
+# ======================================================
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://cloud-hrms-1.onrender.com",
 ]
 
-ACCOUNT_LOGIN_METHODS = {"email"}
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-ACCOUNT_SIGNUP_FIELDS = [
-    "email*",
-    "password1*",
-    "password2*",
+# ======================================================
+# ⏱ CRON + CELERY (UNCHANGED)
+# ======================================================
+
+CRONJOBS = [
+    ("0 0 1 * *", "payroll.cron.generate_monthly_payroll"),
 ]
 
+CELERY_BEAT_SCHEDULE = {
+    "generate-monthly-payroll-on-1st": {
+        "task": "payroll.tasks.generate_monthly_payroll",
+        "schedule": crontab(day_of_month=1, hour=1, minute=0),
+    },
+}
 
+CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_WORKER_POOL = "solo"
 
+# ======================================================
+# ✉ EMAIL (UNCHANGED – BUT WARNING)
+# ======================================================
 
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
