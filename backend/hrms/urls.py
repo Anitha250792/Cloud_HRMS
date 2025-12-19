@@ -1,9 +1,13 @@
-
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
 
-from .views import RoleRedirectView, admin_dashboard_stats
+from .views import (
+    RoleRedirectView,
+    admin_dashboard_stats,
+    health_check,
+)
+
 from auth.views import google_login
 from employees.auth_api import RegisterAPIView
 
@@ -13,8 +17,10 @@ from rest_framework_simplejwt.views import (
 )
 
 urlpatterns = [
+    # ✅ Render health check (MUST be first)
     path("health/", health_check),
 
+    # Root
     path("", RoleRedirectView.as_view(), name="root"),
 
     # Django admin
@@ -38,6 +44,6 @@ urlpatterns = [
     # DASHBOARD
     path("api/dashboard/stats/", admin_dashboard_stats),
 
-    # Frontend catch-all
+    # Frontend SPA catch-all
     path("<path:path>", TemplateView.as_view(template_name="index.html")),
 ]

@@ -1,13 +1,14 @@
+from django.http import JsonResponse
+from django.utils import timezone
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from rest_framework.decorators import api_view
-from django.utils import timezone
+from rest_framework.decorators import api_view, permission_classes
 
 from employees.models import Employee
 from leave.models import Leave
 from payroll.models import Payroll
-from django.http import JsonResponse
 
 
 class RoleRedirectView(APIView):
@@ -23,6 +24,7 @@ class RoleRedirectView(APIView):
 
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def admin_dashboard_stats(request):
     """
     Admin / HR dashboard summary
@@ -38,5 +40,11 @@ def admin_dashboard_stats(request):
         ).count(),
     })
 
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
 def health_check(request):
-    return JsonResponse({"status": "ok"})    
+    """
+    Render health check endpoint
+    """
+    return Response({"status": "ok"})
