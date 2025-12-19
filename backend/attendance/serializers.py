@@ -2,7 +2,18 @@ from rest_framework import serializers
 from .models import Attendance
 
 
+# ======================================================
+# BASIC SERIALIZER (used for check-in / check-out / CRUD)
+# ======================================================
+class AttendanceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Attendance
+        fields = "__all__"
 
+
+# ======================================================
+# HR / REPORTING SERIALIZER (used for tables & dashboard)
+# ======================================================
 class AttendanceRecordSerializer(serializers.ModelSerializer):
     employee = serializers.CharField(source="employee.name", read_only=True)
     hours_worked = serializers.SerializerMethodField()
@@ -13,6 +24,7 @@ class AttendanceRecordSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "employee",
+            "date",
             "check_in",
             "check_out",
             "hours_worked",
