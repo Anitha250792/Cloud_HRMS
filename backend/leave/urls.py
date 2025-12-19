@@ -1,13 +1,12 @@
 from django.urls import path
-from rest_framework.routers import DefaultRouter
-from .views import LeaveViewSet, my_leaves
+from .views import apply_leave, my_leaves
+from .views import LeaveViewSet
 
-router = DefaultRouter()
-router.register("", LeaveViewSet, basename="leave")
+urlpatterns = [
+    path("apply/", apply_leave),
+    path("my/", my_leaves),
 
-urlpatterns = router.urls + [
-    path("apply/", LeaveViewSet.as_view({"post": "apply"})),
+    # HR actions
     path("<int:pk>/approve/", LeaveViewSet.as_view({"post": "approve"})),
     path("<int:pk>/reject/", LeaveViewSet.as_view({"post": "reject"})),
-    path("my/<str:emp_code>/", my_leaves),
 ]

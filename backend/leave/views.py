@@ -11,31 +11,31 @@ class LeaveViewSet(viewsets.ModelViewSet):
     queryset = Leave.objects.all().order_by("-applied_on")
     serializer_class = LeaveSerializer
 
-    # ✅ EMPLOYEE APPLY LEAVE
-    @action(detail=False, methods=["post"])
-    def apply(self, request):
-        emp_code = request.data.get("employee")
+    @api_view(["POST"])
+def apply_leave(request):
+    try:
+        employee = Employee.objects.get(user=request.user, is_active=True)
+    except Employee.DoesNotExist:
+        return Response(
+            {"error": "Employee profile not found"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
-        try:
-            employee = Employee.objects.get(emp_code=emp_code, is_active=True)
-        except Employee.DoesNotExist:
-            return Response({"error": "Employee not found"}, status=404)
+    data = {
+        "employee": employee.id,
+        "leave_type": request.data.get("leave_type"),
+        "start_date": request.data.get("start_date"),
+        "end_date": request.data.get("end_date"),
+        "reason": request.data.get("reason"),
+        "status": "PENDING",
+    }
 
-        data = {
-            "employee": employee.id,
-            "leave_type": request.data.get("leave_type"),
-            "start_date": request.data.get("start_date"),
-            "end_date": request.data.get("end_date"),
-            "reason": request.data.get("reason"),
-            "status": "PENDING",
-        }
+    serializer = LeaveSerializer(data=data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"message": "Leave applied successfully"}, status=201)
 
-        serializer = LeaveSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Leave applied successfully"}, status=201)
-
-        return Response(serializer.errors, status=400)
+    return Response(serializer.errors, status=400)
 
     # ✅ HR APPROVE
     @action(detail=True, methods=["post"])
@@ -56,9 +56,9 @@ class LeaveViewSet(viewsets.ModelViewSet):
 
 # ✅ EMPLOYEE – MY LEAVES
 @api_view(["GET"])
-def my_leaves(request, emp_code):
+def my_leaves(request):
     try:
-        employee = Employee.objects.get(emp_code=emp_code)
+        employee = Employee.objects.get(user=request.user, is_active=True)
     except Employee.DoesNotExist:
         return Response([], status=200)
 
