@@ -1,3 +1,4 @@
+
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
@@ -12,6 +13,8 @@ from rest_framework_simplejwt.views import (
 )
 
 urlpatterns = [
+    path("health/", health_check),
+
     path("", RoleRedirectView.as_view(), name="root"),
 
     # Django admin

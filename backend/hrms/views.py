@@ -7,6 +7,7 @@ from django.utils import timezone
 from employees.models import Employee
 from leave.models import Leave
 from payroll.models import Payroll
+from django.http import JsonResponse
 
 
 class RoleRedirectView(APIView):
@@ -36,3 +37,6 @@ def admin_dashboard_stats(request):
             year=today.year
         ).count(),
     })
+
+def health_check(request):
+    return JsonResponse({"status": "ok"})    
