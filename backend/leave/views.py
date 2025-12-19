@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
-from django.db.models import Count
+
 from .models import Leave
 from .serializers import LeaveSerializer
 from employees.models import Employee
@@ -11,56 +11,68 @@ class LeaveViewSet(viewsets.ModelViewSet):
     queryset = Leave.objects.all().order_by("-applied_on")
     serializer_class = LeaveSerializer
 
-    @api_view(["POST"])
-def apply_leave(request):
-    try:
-        employee = Employee.objects.get(user=request.user, is_active=True)
-    except Employee.DoesNotExist:
-        return Response(
-            {"error": "Employee profile not found"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    # ================= EMPLOYEE APPLY LEAVE =================
+    @action(detail=False, methods=["post"])
+    def apply(self, request):
+        emp_code = request.data.get("employee")
 
-    data = {
-        "employee": employee.id,
-        "leave_type": request.data.get("leave_type"),
-        "start_date": request.data.get("start_date"),
-        "end_date": request.data.get("end_date"),
-        "reason": request.data.get("reason"),
-        "status": "PENDING",
-    }
+        if not emp_code:
+            return Response(
+                {"error": "employee (emp_code) is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-    serializer = LeaveSerializer(data=data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response({"message": "Leave applied successfully"}, status=201)
+        try:
+            employee = Employee.objects.get(emp_code=emp_code, is_active=True)
+        except Employee.DoesNotExist:
+            return Response(
+                {"error": "Employee not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
-    return Response(serializer.errors, status=400)
+        data = {
+            "employee": employee.id,
+            "leave_type": request.data.get("leave_type"),
+            "start_date": request.data.get("start_date"),
+            "end_date": request.data.get("end_date"),
+            "reason": request.data.get("reason"),
+            "status": "PENDING",
+        }
 
-    # ✅ HR APPROVE
+        serializer = LeaveSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"message": "Leave applied successfully"},
+                status=status.HTTP_201_CREATED,
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # ================= HR APPROVE =================
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
         leave = self.get_object()
         leave.status = "APPROVED"
         leave.save()
-        return Response({"message": "Leave Approved"})
+        return Response({"message": "Leave approved"})
 
-    # ✅ HR REJECT
+    # ================= HR REJECT =================
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
         leave = self.get_object()
         leave.status = "REJECTED"
         leave.save()
-        return Response({"message": "Leave Rejected"})
+        return Response({"message": "Leave rejected"})
 
 
-# ✅ EMPLOYEE – MY LEAVES
+# ================= EMPLOYEE – MY LEAVES =================
 @api_view(["GET"])
-def my_leaves(request):
+def my_leaves(request, emp_code):
     try:
-        employee = Employee.objects.get(user=request.user, is_active=True)
+        employee = Employee.objects.get(emp_code=emp_code, is_active=True)
     except Employee.DoesNotExist:
-        return Response([], status=200)
+        return Response([], status=status.HTTP_200_OK)
 
     leaves = Leave.objects.filter(employee=employee).order_by("-applied_on")
     serializer = LeaveSerializer(leaves, many=True)
