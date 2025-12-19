@@ -25,4 +25,5 @@ python manage.py migrate && \
 if [ \"$CREATE_SUPERUSER\" = \"True\" ]; then \
   python manage.py create_render_superuser; \
 fi && \
-gunicorn hrms.wsgi:application --bind 0.0.0.0:8000"
+gunicorn hrms.wsgi:application --bind 0.0.0.0:$PORT"
+

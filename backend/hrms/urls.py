@@ -1,12 +1,14 @@
-from django.contrib import admin 
+from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import TemplateView
+
 from .views import RoleRedirectView, admin_dashboard_stats
-from auth.views import google_login            # ✔ your google view
+from auth.views import google_login
 from employees.auth_api import RegisterAPIView
+
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
-from django.views.generic import TemplateView    
 )
 
 urlpatterns = [
@@ -30,8 +32,9 @@ urlpatterns = [
     path("api/token/", TokenObtainPairView.as_view()),
     path("api/token/refresh/", TokenRefreshView.as_view()),
 
-    # ✅ DASHBOARD STATS
+    # DASHBOARD
     path("api/dashboard/stats/", admin_dashboard_stats),
 
+    # Frontend catch-all
     path("<path:path>", TemplateView.as_view(template_name="index.html")),
 ]
