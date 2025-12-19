@@ -1,6 +1,8 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
 from .models import Employee
 from .serializers import EmployeeSerializer
@@ -10,6 +12,7 @@ User = get_user_model()
 
 # ===================== LIST EMPLOYEES =====================
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def list_employees(request):
     employees = Employee.objects.filter(is_active=True)
     serializer = EmployeeSerializer(employees, many=True)
@@ -18,7 +21,12 @@ def list_employees(request):
 
 # ===================== CREATE / EDIT EMPLOYEE =====================
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def create_employee(request):
+    # 🔐 HR ONLY
+    if request.user.role != "HR":
+        raise PermissionDenied("Only HR can add employees")
+
     email = request.data.get("email")
 
     if not email:
@@ -50,7 +58,6 @@ def create_employee(request):
             status=status.HTTP_200_OK
         )
 
-    # 🔹 Create NEW employee
     serializer = EmployeeSerializer(data=request.data)
     if serializer.is_valid():
         employee = serializer.save(user=user)
@@ -68,7 +75,11 @@ def create_employee(request):
 
 # ===================== UPDATE =====================
 @api_view(["PUT"])
+@permission_classes([IsAuthenticated])
 def update_employee(request, pk):
+    if request.user.role != "HR":
+        raise PermissionDenied("Only HR can update employees")
+
     try:
         emp = Employee.objects.get(pk=pk, is_active=True)
     except Employee.DoesNotExist:
@@ -84,7 +95,11 @@ def update_employee(request, pk):
 
 # ===================== DELETE (SOFT) =====================
 @api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
 def delete_employee(request, pk):
+    if request.user.role != "HR":
+        raise PermissionDenied("Only HR can delete employees")
+
     try:
         emp = Employee.objects.get(pk=pk)
         emp.is_active = False
