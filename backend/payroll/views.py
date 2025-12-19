@@ -113,6 +113,12 @@ def payroll_list(request):
 # =====================================================================
 @api_view(["POST"])
 def generate_all_payroll(request):
+    if request.user.role != "HR":
+        return Response(
+            {"error": "Only HR can generate payroll"},
+            status=403
+        )
+
     try:
         month = int(request.data.get("month"))
         year = int(request.data.get("year"))
@@ -120,12 +126,11 @@ def generate_all_payroll(request):
         return Response({"error": "Month and year required"}, status=400)
 
     working_days = monthrange(year, month)[1]
-    employees = Employee.objects.all()
+    employees = Employee.objects.filter(is_active=True)
 
     generated = 0
 
     for emp in employees:
-        # Skip employees without salary
         if not emp.salary or emp.salary <= 0:
             continue
 
@@ -136,6 +141,9 @@ def generate_all_payroll(request):
         )
 
         present_days = attendance_qs.count()
+        absent_days = max(working_days - present_days, 0)
+        per_day_salary = float(emp.salary) / working_days
+        lop_amount = per_day_salary * absent_days
 
         Payroll.objects.update_or_create(
             employee=emp,
@@ -145,6 +153,10 @@ def generate_all_payroll(request):
                 "basic_salary": emp.salary,
                 "working_days": working_days,
                 "present_days": present_days,
+                "absent_days": absent_days,
+                "lop_days": absent_days,
+                "gross_salary": emp.salary,
+                "net_salary": round(emp.salary - lop_amount, 2),
             }
         )
 
@@ -156,6 +168,7 @@ def generate_all_payroll(request):
         "month": month,
         "year": year,
     }, status=200)
+
 
 # =====================================================================
 #                       DASHBOARD SUMMARY API

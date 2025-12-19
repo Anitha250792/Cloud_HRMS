@@ -9,5 +9,5 @@ urlpatterns = router.urls + [
     path("apply/", LeaveViewSet.as_view({"post": "apply"})),
     path("<int:pk>/approve/", LeaveViewSet.as_view({"post": "approve"})),
     path("<int:pk>/reject/", LeaveViewSet.as_view({"post": "reject"})),
-    path("my/<str:emp_code>/", my_leaves),
+    path("my/", my_leaves),
 ]
