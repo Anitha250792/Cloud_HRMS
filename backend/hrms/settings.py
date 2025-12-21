@@ -14,22 +14,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ======================================================
 
 SECRET_KEY = os.getenv("SECRET_KEY")
-
 if not SECRET_KEY:
     raise Exception("SECRET_KEY is not set")
 
-
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = os.getenv(
-    "ALLOWED_HOSTS",
-    "cloud-hrms-1.onrender.com,localhost,127.0.0.1"
-).split(",")
+ALLOWED_HOSTS = [
+    "cloud-hrms-1.onrender.com",
+    "cloud-hrms-frontend-1.onrender.com",
+    "localhost",
+    "127.0.0.1",
+]
 
 SITE_ID = 1
 
 # ======================================================
-# 📦 INSTALLED APPS (UNCHANGED FEATURES)
+# 📦 INSTALLED APPS
 # ======================================================
 
 INSTALLED_APPS = [
@@ -41,22 +41,20 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sites",
 
-    # Third Party
+    # Third-party
     "rest_framework",
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "corsheaders",
     "django_crontab",
 
-    # Auth
+    # Auth (EMAIL / PASSWORD ONLY)
     "dj_rest_auth",
     "dj_rest_auth.registration",
     "allauth",
     "allauth.account",
-    "allauth.socialaccount",
-    "allauth.socialaccount.providers.google",
 
-    # Local Apps
+    # Local apps
     "employees",
     "attendance",
     "payroll",
@@ -64,11 +62,22 @@ INSTALLED_APPS = [
     "accounts",
 ]
 
+# ======================================================
+# 🔑 REST + JWT
+# ======================================================
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
 }
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
 # ======================================================
 # 🧱 MIDDLEWARE
 # ======================================================
@@ -114,7 +123,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "hrms.wsgi.application"
 
 # ======================================================
-# 🔐 AUTH / USER
+# 🔐 AUTH CONFIG (EMAIL LOGIN ONLY)
 # ======================================================
 
 AUTH_USER_MODEL = "accounts.User"
@@ -124,38 +133,15 @@ AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+
 LOGIN_URL = "/admin/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
-ACCOUNT_LOGIN_METHODS = {"email"}
-ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
-
-SOCIALACCOUNT_PROVIDERS = {
-    "google": {
-        "SCOPE": ["profile", "email"],
-        "AUTH_PARAMS": {"access_type": "online"},
-    }
-}
-
 # ======================================================
-# 🔑 JWT / REST
-# ======================================================
-
-REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
-}
-
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-    "AUTH_HEADER_TYPES": ("Bearer",),
-}
-
-# ======================================================
-# 🗄 DATABASE (Render SAFE)
+# 🗄 DATABASE (RENDER SAFE)
 # ======================================================
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -165,7 +151,7 @@ if DATABASE_URL:
         "default": dj_database_url.parse(
             DATABASE_URL,
             conn_max_age=600,
-            ssl_require=True,
+            ssl_require=False,
         )
     }
 else:
@@ -187,13 +173,14 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ======================================================
-# 🌍 CORS + CSRF (Frontend SAFE)
+# 🌍 CORS + CSRF
 # ======================================================
 
 CORS_ALLOW_ALL_ORIGINS = True
 
 CSRF_TRUSTED_ORIGINS = [
     "https://cloud-hrms-1.onrender.com",
+    "https://cloud-hrms-frontend-1.onrender.com",
 ]
 
 SESSION_COOKIE_SECURE = True
@@ -201,7 +188,7 @@ CSRF_COOKIE_SECURE = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # ======================================================
-# ⏱ CRON + CELERY (UNCHANGED)
+# ⏱ CRON + CELERY
 # ======================================================
 
 CRONJOBS = [
@@ -220,7 +207,7 @@ CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 CELERY_WORKER_POOL = "solo"
 
 # ======================================================
-# ✉ EMAIL (UNCHANGED – BUT WARNING)
+# ✉ EMAIL
 # ======================================================
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
