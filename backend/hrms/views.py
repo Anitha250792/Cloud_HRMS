@@ -29,39 +29,29 @@ class RoleRedirectView(APIView):
 def admin_dashboard_stats(request):
     today = timezone.localdate()
 
-    data = {
-        "total_employees": 0,
-        "present_today": 0,
-        "pending_leaves": 0,
-        "payroll_this_month": 0,
-    }
+    total_employees = Employee.objects.filter(is_active=True).count()
 
-    try:
-        data["total_employees"] = Employee.objects.count()
-    except Exception as e:
-        print("EMPLOYEE ERROR:", e)
+    present_today = Attendance.objects.filter(
+        date=today,
+        check_in__isnull=False
+    ).count()
 
-    try:
-        data["present_today"] = Attendance.objects.filter(
-            date=today
-        ).count()
-    except Exception as e:
-        print("ATTENDANCE ERROR:", e)
+    pending_leaves = Leave.objects.filter(status="PENDING").count()
 
-    try:
-        data["pending_leaves"] = Leave.objects.count()
-    except Exception as e:
-        print("LEAVE ERROR:", e)
+    payroll_total = Payroll.objects.filter(
+        month=today.month,
+        year=today.year
+    ).aggregate(
+        total=Sum("net_salary_value")
+    )["total"] or 0
 
-    try:
-        payroll = Payroll.objects.aggregate(
-            total=Sum("net_salary")
-        )["total"]
-        data["payroll_this_month"] = payroll or 0
-    except Exception as e:
-        print("PAYROLL ERROR:", e)
+    return Response({
+        "total_employees": total_employees,
+        "present_today": present_today,
+        "pending_leaves": pending_leaves,
+        "payroll_this_month": payroll_total,
+    })
 
-    return Response(data)
 
 
 
