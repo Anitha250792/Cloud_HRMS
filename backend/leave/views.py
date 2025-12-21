@@ -57,7 +57,7 @@ class LeaveViewSet(viewsets.ModelViewSet):
         if request.user.role != "HR":
             return Response({"error": "Unauthorized"}, status=403)
 
-        leave = self.get_object()
+        leave = self.get_object()  
         leave.status = "REJECTED"
         leave.save()
         return Response({"message": "Leave rejected"})
