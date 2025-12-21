@@ -25,35 +25,33 @@ class RoleRedirectView(APIView):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def admin_dashboard_stats(request):
-    """
-    Admin / HR dashboard summary
-    """
     today = timezone.localdate()
 
+    # Total active employees
     total_employees = Employee.objects.filter(is_active=True).count()
 
+    # Present today
     present_today = Attendance.objects.filter(
         date=today,
-        status="PRESENT"
+        check_in__isnull=False
     ).count()
 
+    # Pending leaves
     pending_leaves = Leave.objects.filter(status="PENDING").count()
 
-    payroll_this_month = (
-        Payroll.objects.filter(
-            month=today.month,
-            year=today.year
-        ).aggregate(total=Sum("net_salary"))["total"]
-        or 0
-    )
+    # Payroll total for current month
+    payroll_total = Payroll.objects.filter(
+        month=today.month,
+        year=today.year
+    ).aggregate(total=Sum("net_salary"))["total"] or 0
 
     return Response({
         "total_employees": total_employees,
         "present_today": present_today,
         "pending_leaves": pending_leaves,
-        "payroll_this_month": payroll_this_month,
+        "payroll_this_month": payroll_total,
     })
 
 
