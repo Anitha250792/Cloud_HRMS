@@ -24,7 +24,7 @@ class RoleRedirectView(APIView):
         return Response({"message": "HRMS Backend Running"})
 
 
-@@api_view(["GET"])
+@api_view(["GET"])
 @permission_classes([AllowAny])
 def admin_dashboard_stats(request):
     today = timezone.localdate()
