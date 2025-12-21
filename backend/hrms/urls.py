@@ -30,6 +30,7 @@ urlpatterns = [
     path("api/auth/", include("auth.urls")),
     path("api/auth/register/", RegisterAPIView.as_view()),
     path("api/auth/google/", google_login),
+    path("api/auth/", include("dj_rest_auth.urls")),
 
     # BUSINESS APIs
     path("api/employees/", include("employees.urls")),
