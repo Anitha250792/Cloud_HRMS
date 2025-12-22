@@ -20,9 +20,10 @@ def list_employees(request):
         serializer = EmployeeSerializer(employees, many=True)
         return Response(serializer.data)
     except Exception as e:
+        print("EMPLOYEE LIST ERROR:", str(e))
         return Response(
-            {"error": "Failed to load employees", "detail": str(e)},
-            status=500
+            {"error": "Internal server error"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
 
@@ -125,14 +126,13 @@ def delete_employee(request, pk):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_employee(request, pk):
-    if request.user.role != "HR":
-        raise PermissionDenied("Only HR can view employee details")
-
     try:
-        emp = Employee.objects.get(pk=pk, is_active=True)
+        employee = Employee.objects.get(pk=pk, is_active=True)
     except Employee.DoesNotExist:
-        return Response({"error": "Employee not found"}, status=404)
+        return Response(
+            {"error": "Employee not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
-    serializer = EmployeeSerializer(emp)
+    serializer = EmployeeSerializer(employee)
     return Response(serializer.data)
-
