@@ -4,7 +4,6 @@ from .models import Employee
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
-    # ================= LIST VIEW =================
     list_display = (
         "emp_code",
         "name",
@@ -14,38 +13,17 @@ class EmployeeAdmin(admin.ModelAdmin):
         "salary",
         "date_joined",
         "is_active",
+        "user",
     )
 
-    # ================= SEARCH =================
-    search_fields = (
-        "emp_code",
-        "name",
-        "email",
-    )
+    search_fields = ("emp_code", "name", "email")
+    list_filter = ("department", "role", "is_active")
+    ordering = ("-id",)
+    readonly_fields = ("user",)
 
-    # ================= FILTERS =================
-    list_filter = (
-        "department",
-        "role",
-        "is_active",
-    )
-
-    # ================= DEFAULT ORDER =================
-    ordering = ("-date_joined",)
-
-    # ================= READ-ONLY FIELDS =================
-    readonly_fields = ("date_joined",)
-
-    # ================= SOFT DELETE AWARE =================
     def get_queryset(self, request):
-        """
-        Show only ACTIVE employees in admin by default
-        (matches API behavior)
-        """
-        qs = super().get_queryset(request)
-        return qs.filter(is_active=True)
+        return super().get_queryset(request).select_related("user")
 
-    # ================= ADMIN ACTION =================
     @admin.action(description="Deactivate selected employees")
     def deactivate_employees(self, request, queryset):
         queryset.update(is_active=False)
