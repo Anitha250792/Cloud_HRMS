@@ -37,27 +37,30 @@ def create_employee(request):
         email=email,
         defaults={
             "name": request.data.get("name", ""),
-            "role": "EMPLOYEE"
-        }
+            "role": "EMPLOYEE",
+        },
     )
 
     if user_created:
         user.set_password("Default@123")
         user.save()
 
-    # 🔹 Check if EMPLOYEE already exists
-    employee = Employee.objects.filter(email=email, is_active=True).first()
+    # 🔹 Check if EMPLOYEE already exists (OneToOne safe)
+    employee = Employee.objects.filter(user=user).first()
 
     if employee:
+        employee.is_active = True
+        employee.save()
         return Response(
             {
-                "message": "Employee already exists",
-                "action": "edit",
-                "employee_id": employee.id
+                "message": "Employee already exists and reactivated",
+                "action": "reactivated",
+                "employee_id": employee.id,
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
+    # 🔹 Create new EMPLOYEE
     serializer = EmployeeSerializer(data=request.data)
     if serializer.is_valid():
         employee = serializer.save(user=user)
@@ -65,12 +68,13 @@ def create_employee(request):
             {
                 "message": "Employee created successfully",
                 "action": "created",
-                "employee_id": employee.id
+                "employee_id": employee.id,
             },
-            status=status.HTTP_201_CREATED
+            status=status.HTTP_201_CREATED,
         )
 
     return Response(serializer.errors, status=400)
+
 
 
 # ===================== UPDATE =====================
