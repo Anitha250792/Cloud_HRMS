@@ -1,10 +1,14 @@
 from django.urls import path
-from . import views   # ✅ IMPORTANT
+from .views import (
+    list_employees,
+    create_employee,
+    update_employee,
+    delete_employee,
+)
 
 urlpatterns = [
-    path("", views.list_employees),
-    path("create/", views.create_employee),
-    path("<int:pk>/", views.get_employee),
-    path("update/<int:pk>/", views.update_employee),
-    path("delete/<int:pk>/", views.delete_employee),
+    path("", list_employees, name="list_employees"),
+    path("create/", create_employee, name="create_employee"),
+    path("update/<int:pk>/", update_employee, name="update_employee"),
+    path("delete/<int:pk>/", delete_employee, name="delete_employee"),
 ]
