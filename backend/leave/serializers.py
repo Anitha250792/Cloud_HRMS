@@ -7,4 +7,20 @@ class LeaveSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Leave
-        fields = "__all__"
+        fields = [
+            "id",
+            "employee",
+            "employee_name",
+            "emp_code",
+            "leave_type",
+            "start_date",
+            "end_date",
+            "reason",
+            "status",
+            "applied_on",
+        ]
+        read_only_fields = [
+            "employee",
+            "status",
+            "applied_on",
+        ]

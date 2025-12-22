@@ -14,31 +14,33 @@ class LeaveViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     # ================= EMPLOYEE APPLY LEAVE =================
-    @action(detail=False, methods=["post"])
-    def apply(self, request):
-        try:
-            employee = Employee.objects.get(user=request.user, is_active=True)
-        except Employee.DoesNotExist:
-            return Response(
-                {"error": "Employee profile not found. Please login again."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        serializer = LeaveSerializer(data={
-            "leave_type": request.data.get("leave_type"),
-            "start_date": request.data.get("start_date"),
-            "end_date": request.data.get("end_date"),
-            "reason": request.data.get("reason"),
-            "status": "PENDING",
-        })
-
-        serializer.is_valid(raise_exception=True)
-        serializer.save(employee=employee)
-
+@action(detail=False, methods=["post"])
+def apply(self, request):
+    try:
+        employee = Employee.objects.get(user=request.user, is_active=True)
+    except Employee.DoesNotExist:
         return Response(
-            {"message": "Leave applied successfully"},
-            status=status.HTTP_201_CREATED,
+            {"error": "Employee profile not found. Please login again."},
+            status=status.HTTP_404_NOT_FOUND,
         )
+
+    serializer = LeaveSerializer(
+        data=request.data,
+        context={"request": request}
+    )
+
+    serializer.is_valid(raise_exception=True)
+
+    serializer.save(
+        employee=employee,
+        status="PENDING"  # ✅ force status safely here
+    )
+
+    return Response(
+        {"message": "Leave applied successfully"},
+        status=status.HTTP_201_CREATED,
+    )
+
 
     # ================= HR APPROVE =================
     @action(detail=True, methods=["post"])
@@ -67,9 +69,8 @@ class LeaveViewSet(viewsets.ModelViewSet):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def my_leaves(request):
-    try:
-        employee = Employee.objects.get(user=request.user)
-    except Employee.DoesNotExist:
+    employee = Employee.objects.filter(user=request.user).first()
+    if not employee:
         return Response([], status=200)
 
     leaves = Leave.objects.filter(employee=employee).order_by("-applied_on")
