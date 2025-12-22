@@ -15,18 +15,16 @@ User = get_user_model()
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def list_employees(request):
-    if request.user.role != "HR":
-        raise PermissionDenied("Only HR can view employees")
+    try:
+        employees = Employee.objects.filter(is_active=True).select_related("user")
+        serializer = EmployeeSerializer(employees, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response(
+            {"error": "Failed to load employees", "detail": str(e)},
+            status=500
+        )
 
-    employees = (
-        Employee.objects
-        .filter(is_active=True)
-        .select_related("user")
-        .order_by("-id")
-    )
-
-    serializer = EmployeeSerializer(employees, many=True)
-    return Response(serializer.data)
 
 
 # ===================== CREATE EMPLOYEE =====================
@@ -122,3 +120,19 @@ def delete_employee(request, pk):
     employee.is_active = False
     employee.save()
     return Response({"message": "Employee deactivated"})
+
+# ===================== GET SINGLE EMPLOYEE =====================
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_employee(request, pk):
+    if request.user.role != "HR":
+        raise PermissionDenied("Only HR can view employee details")
+
+    try:
+        emp = Employee.objects.get(pk=pk, is_active=True)
+    except Employee.DoesNotExist:
+        return Response({"error": "Employee not found"}, status=404)
+
+    serializer = EmployeeSerializer(emp)
+    return Response(serializer.data)
+
