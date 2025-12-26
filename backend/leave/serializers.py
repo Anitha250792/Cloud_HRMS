@@ -19,8 +19,4 @@ class LeaveSerializer(serializers.ModelSerializer):
             "status",
             "applied_on",
         ]
-        read_only_fields = [
-            "employee",
-            "status",
-            "applied_on",
-        ]
+        read_only_fields = ["employee", "status", "applied_on"]
