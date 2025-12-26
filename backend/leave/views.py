@@ -16,31 +16,34 @@ class LeaveViewSet(viewsets.ModelViewSet):
     # ================= EMPLOYEE APPLY LEAVE =================
 @action(detail=False, methods=["post"])
 def apply(self, request):
-    try:
-        employee = Employee.objects.get(user=request.user, is_active=True)
-    except Employee.DoesNotExist:
+    employee = Employee.objects.filter(
+        user=request.user,
+        is_active=True
+    ).first()
+
+    if not employee:
         return Response(
-            {"error": "Employee profile not found. Please login again."},
-            status=status.HTTP_404_NOT_FOUND,
+            {"error": "Employee profile not linked to this account"},
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
-    serializer = LeaveSerializer(
-        data=request.data,
-        context={"request": request}
-    )
+    serializer = LeaveSerializer(data={
+        "leave_type": request.data.get("leave_type"),
+        "start_date": request.data.get("start_date"),
+        "end_date": request.data.get("end_date"),
+        "reason": request.data.get("reason"),
+        "status": "PENDING",
+    })
 
-    serializer.is_valid(raise_exception=True)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
 
-    serializer.save(
-        employee=employee,
-        status="PENDING"  # ✅ force status safely here
-    )
+    serializer.save(employee=employee)
 
     return Response(
         {"message": "Leave applied successfully"},
         status=status.HTTP_201_CREATED,
     )
-
 
     # ================= HR APPROVE =================
     @action(detail=True, methods=["post"])
