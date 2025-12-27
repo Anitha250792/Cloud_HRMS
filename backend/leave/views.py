@@ -14,36 +14,40 @@ class LeaveViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     # ================= EMPLOYEE APPLY LEAVE =================
-@action(detail=False, methods=["post"])
-def apply(self, request):
-    employee = Employee.objects.filter(
-        user=request.user,
-        is_active=True
-    ).first()
+    @action(detail=False, methods=["post"])
+    def apply(self, request):
+        employee = Employee.objects.filter(
+            user=request.user,
+            is_active=True
+        ).first()
 
-    if not employee:
+        if not employee:
+            return Response(
+                {"error": "Employee profile not linked to this account"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = LeaveSerializer(data={
+            "leave_type": request.data.get("leave_type"),
+            "start_date": request.data.get("start_date"),
+            "end_date": request.data.get("end_date"),
+            "reason": request.data.get("reason"),
+            "status": "PENDING",
+        })
+
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+        serializer.save(employee=employee)
+
         return Response(
-            {"error": "Employee profile not linked to this account"},
-            status=status.HTTP_400_BAD_REQUEST,
+            {"message": "Leave applied successfully"},
+            status=status.HTTP_201_CREATED,
         )
-
-    serializer = LeaveSerializer(data={
-        "leave_type": request.data.get("leave_type"),
-        "start_date": request.data.get("start_date"),
-        "end_date": request.data.get("end_date"),
-        "reason": request.data.get("reason"),
-        "status": "PENDING",
-    })
-
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=400)
-
-    serializer.save(employee=employee)
-
-    return Response(
-        {"message": "Leave applied successfully"},
-        status=status.HTTP_201_CREATED,
-    )
 
     # ================= HR APPROVE =================
     @action(detail=True, methods=["post"])
@@ -62,7 +66,7 @@ def apply(self, request):
         if request.user.role != "HR":
             return Response({"error": "Unauthorized"}, status=403)
 
-        leave = self.get_object()  
+        leave = self.get_object()
         leave.status = "REJECTED"
         leave.save()
         return Response({"message": "Leave rejected"})

@@ -5,7 +5,6 @@ from .views import LeaveViewSet, my_leaves
 router = DefaultRouter()
 router.register("", LeaveViewSet, basename="leave")
 
-urlpatterns = [
-    
+urlpatterns = router.urls + [
     path("my/", my_leaves),
 ]
