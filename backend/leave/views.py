@@ -1,7 +1,9 @@
+from django.db.models import Q Sum
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from datetime import timedelta
 
 from .models import Leave
 from .serializers import LeaveSerializer
@@ -15,39 +17,30 @@ class LeaveViewSet(viewsets.ModelViewSet):
 
     # ================= EMPLOYEE APPLY LEAVE =================
     @action(detail=False, methods=["post"])
-    def apply(self, request):
-        employee = Employee.objects.filter(
-            user=request.user,
-            is_active=True
-        ).first()
+def apply(self, request):
+    employee = Employee.objects.filter(user=request.user, is_active=True).first()
+    if not employee:
+        return Response({"error": "Employee profile missing"}, status=400)
 
-        if not employee:
-            return Response(
-                {"error": "Employee profile not linked to this account"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+    overlap = Leave.objects.filter(
+        employee=employee,
+        status__in=["PENDING", "APPROVED"],
+        start_date__lte=request.data["end_date"],
+        end_date__gte=request.data["start_date"],
+    )
 
-        serializer = LeaveSerializer(data={
-            "leave_type": request.data.get("leave_type"),
-            "start_date": request.data.get("start_date"),
-            "end_date": request.data.get("end_date"),
-            "reason": request.data.get("reason"),
-            "status": "PENDING",
-        })
-
-        if not serializer.is_valid():
-            return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-
-        serializer.save(employee=employee)
-
+    if overlap.exists():
         return Response(
-            {"message": "Leave applied successfully"},
-            status=status.HTTP_201_CREATED,
+            {"error": "Overlapping leave already applied"},
+            status=400
         )
+
+    serializer = LeaveSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    serializer.save(employee=employee, status="PENDING")
+
+    return Response({"message": "Leave applied successfully"}, status=201)
+
 
     # ================= HR APPROVE =================
     @action(detail=True, methods=["post"])
@@ -83,3 +76,28 @@ def my_leaves(request):
     leaves = Leave.objects.filter(employee=employee).order_by("-applied_on")
     serializer = LeaveSerializer(leaves, many=True)
     return Response(serializer.data)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def leave_balance(request):
+    employee = Employee.objects.filter(user=request.user).first()
+    if not employee:
+        return Response({"balance": 0})
+
+    approved_leaves = Leave.objects.filter(
+        employee=employee,
+        status="APPROVED"
+    )
+
+    used_days = sum(l.total_days() for l in approved_leaves)
+
+    TOTAL_LEAVES = 24   # yearly policy
+    balance = TOTAL_LEAVES - used_days
+
+    return Response({
+        "total": TOTAL_LEAVES,
+        "used": used_days,
+        "balance": max(balance, 0),
+    })
+
+

@@ -7,4 +7,5 @@ router.register("", LeaveViewSet, basename="leave")
 
 urlpatterns = router.urls + [
     path("my/", my_leaves),
+    path("balance/", leave_balance),
 ]
