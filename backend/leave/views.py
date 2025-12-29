@@ -95,3 +95,18 @@ def my_leaves(request):
     leaves = Leave.objects.filter(employee=employee).order_by("-applied_on")
     serializer = LeaveSerializer(leaves, many=True)
     return Response(serializer.data)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def leave_balance(request):
+    employee = Employee.objects.filter(user=request.user).first()
+    if not employee:
+        return Response({"balance": 0})
+
+    total = Leave.objects.filter(
+        employee=employee,
+        status="APPROVED"
+    ).aggregate(days=Sum("days"))["days"] or 0
+
+    return Response({"balance": total})
+
