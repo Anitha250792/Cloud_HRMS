@@ -3,7 +3,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
+from datetime import date
 from .models import Leave
 from .serializers import LeaveSerializer
 from employees.models import Employee
@@ -88,25 +88,24 @@ class LeaveViewSet(viewsets.ModelViewSet):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def my_leaves(request):
-    employee = Employee.objects.filter(user=request.user).first()
-    if not employee:
-        return Response([], status=200)
-
-    leaves = Leave.objects.filter(employee=employee).order_by("-applied_on")
+    leaves = Leave.objects.filter(employee=request.user).order_by("-id")
     serializer = LeaveSerializer(leaves, many=True)
     return Response(serializer.data)
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def leave_balance(request):
-    employee = Employee.objects.filter(user=request.user).first()
-    if not employee:
-        return Response({"balance": 0})
+    YEARLY_QUOTA = 12
 
-    total = Leave.objects.filter(
-        employee=employee,
-        status="APPROVED"
-    ).aggregate(days=Sum("days"))["days"] or 0
+    used = Leave.objects.filter(
+        employee=request.user,
+        status="APPROVED",
+        start_date__year=date.today().year
+    ).aggregate(total=Sum("days"))["total"] or 0
 
-    return Response({"balance": total})
+    balance = max(YEARLY_QUOTA - used, 0)
 
+    return Response({
+        "used": used,
+        "balance": balance
+    })

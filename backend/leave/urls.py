@@ -6,6 +6,8 @@ router = DefaultRouter()
 router.register("", LeaveViewSet, basename="leave")
 
 urlpatterns = router.urls + [
+    path("", LeaveViewSet.as_view({"get": "list"})),
+    path("apply/", LeaveViewSet.as_view({"post": "create"})),
     path("my/", my_leaves),
     path("balance/", leave_balance),
 ]

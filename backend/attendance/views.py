@@ -30,70 +30,85 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     # ---------------- CHECK-IN ----------------
-    @action(methods=["post"], detail=False)
-    def check_in(self, request):
-        employee = get_active_employee(request.user)
-        if not employee:
-            return Response(
-                {"error": "Employee profile not found or inactive. Contact HR."},
-                status=403
-            )
-
-        today = timezone.localdate()
-
-        attendance, created = Attendance.objects.get_or_create(
-            employee=employee,
-            date=today,
+@action(methods=["post"], detail=False)
+def check_in(self, request):
+    employee = get_active_employee(request.user)
+    if not employee:
+        return Response(
+            {"error": "Employee profile not found or inactive. Contact HR."},
+            status=403
         )
 
-        if attendance.check_in:
-            return Response(
-                {"error": "Already checked in today"},
-                status=400
-            )
+    today = timezone.localdate()
 
+    attendance = Attendance.objects.filter(
+        employee=employee,
+        date=today
+    ).first()
+
+    if attendance and attendance.check_in:
+        return Response(
+            {"error": "Already checked in today"},
+            status=400
+        )
+
+    if not attendance:
+        attendance = Attendance.objects.create(
+            employee=employee,
+            date=today,
+            check_in=timezone.now()
+        )
+    else:
         attendance.check_in = timezone.now()
         attendance.save()
 
-        return Response(
-            {
-                "message": "Check-in successful",
-                "data": AttendanceSerializer(attendance).data,
-            }
-        )
+    return Response(
+        {
+            "message": "Check-in successful",
+            "data": AttendanceSerializer(attendance).data,
+        }
+    )
 
     # ---------------- CHECK-OUT ----------------
-    @action(methods=["post"], detail=False)
-    def check_out(self, request):
-        employee = get_active_employee(request.user)
-        if not employee:
-            return Response(
-                {"error": "Employee profile not found or inactive. Contact HR."},
-                status=403
-            )
-
-        today = timezone.localdate()
-
-        attendance = Attendance.objects.filter(
-            employee=employee,
-            date=today
-        ).first()
-
-        if not attendance or attendance.check_out:
-            return Response(
-                {"error": "No active check-in found"},
-                status=400
-            )
-
-        attendance.check_out = timezone.now()
-        attendance.save()
-
+@action(methods=["post"], detail=False)
+def check_out(self, request):
+    employee = get_active_employee(request.user)
+    if not employee:
         return Response(
-            {
-                "message": "Check-out successful",
-                "data": AttendanceSerializer(attendance).data,
-            }
+            {"error": "Employee profile not found or inactive. Contact HR."},
+            status=403
         )
+
+    today = timezone.localdate()
+
+    attendance = Attendance.objects.filter(
+        employee=employee,
+        date=today
+    ).first()
+
+    if not attendance:
+        return Response(
+            {"error": "You have not checked in today"},
+            status=400
+        )
+
+    if attendance.check_out:
+        return Response(
+            {"error": "Already checked out today"},
+            status=400
+        )
+
+    attendance.check_out = timezone.now()
+    attendance.save()
+
+    return Response(
+        {
+            "message": "Check-out successful",
+            "data": AttendanceSerializer(attendance).data,
+        }
+    )
+
+
 
     # ---------------- HR DAILY LOGS ----------------
     @action(detail=False, methods=["get"])
@@ -145,7 +160,12 @@ def my_today_attendance(request):
     employee = get_active_employee(request.user)
     if not employee:
         return Response(
-            {"status": "NO_EMPLOYEE"},
+            {
+                "status": "NO_EMPLOYEE",
+                "check_in": None,
+                "check_out": None,
+                "working_hours": 0,
+            },
             status=403
         )
 
@@ -153,7 +173,14 @@ def my_today_attendance(request):
     record = Attendance.objects.filter(employee=employee, date=today).first()
 
     if not record:
-        return Response({"status": "NOT_MARKED"})
+        return Response(
+            {
+                "status": "NOT_MARKED",
+                "check_in": None,
+                "check_out": None,
+                "working_hours": 0,
+            }
+        )
 
     status_label = "PRESENT"
     if record.check_in and not record.check_out and record.check_in.hour > 10:
@@ -164,10 +191,9 @@ def my_today_attendance(request):
             "status": status_label,
             "check_in": record.check_in,
             "check_out": record.check_out,
-            "working_hours": record.working_hours,
+            "working_hours": record.working_hours or 0,
         }
     )
-
 
 # ==========================================================
 # HR DASHBOARD APIs
