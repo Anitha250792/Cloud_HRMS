@@ -95,17 +95,32 @@ def my_leaves(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def leave_balance(request):
-    YEARLY_QUOTA = 12
+    employee = Employee.objects.get(user=request.user)
 
-    used = Leave.objects.filter(
-        employee=request.user,
-        status="APPROVED",
-        start_date__year=date.today().year
-    ).aggregate(total=Sum("days"))["total"] or 0
+    TOTAL = {
+        "CASUAL": 12,
+        "SICK": 10,
+        "PAID": 15,
+    }
 
-    balance = max(YEARLY_QUOTA - used, 0)
+    approved = Leave.objects.filter(
+        employee=employee,
+        status="APPROVED"
+    )
+
+    used = {"CASUAL": 0, "SICK": 0, "PAID": 0}
+
+    for l in approved:
+        days = (l.end_date - l.start_date).days + 1
+        used[l.leave_type] += days
+
+    balance = {
+        k: TOTAL[k] - used[k]
+        for k in TOTAL
+    }
 
     return Response({
+        "total": TOTAL,
         "used": used,
         "balance": balance
     })
