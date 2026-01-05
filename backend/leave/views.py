@@ -1,4 +1,5 @@
 from django.db.models import Q, Sum
+from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -124,3 +125,27 @@ def leave_balance(request):
         "used": used,
         "balance": balance
     })
+
+
+@api_view(["POST"])
+def apply_leave(request):
+    employee = Employee.objects.filter(user=request.user, is_active=True).first()
+    if not employee:
+        return Response({"error": "Employee not found"}, status=403)
+
+    data = request.data
+
+    leave = Leave.objects.create(
+        employee=employee,
+        leave_type=data.get("leave_type"),
+        start_date=data.get("start_date"),
+        end_date=data.get("end_date"),
+        reason=data.get("reason"),
+        status="PENDING",
+        applied_on=timezone.now()
+    )
+
+    return Response({
+        "message": "Leave applied successfully",
+        "id": leave.id
+    }, status=201)

@@ -1,6 +1,6 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
-from .views import LeaveViewSet, my_leaves, leave_balance
+from .views import LeaveViewSet, my_leaves, leave_balance, apply_leave
 
 router = DefaultRouter()
 router.register("", LeaveViewSet, basename="leave")
