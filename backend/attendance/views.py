@@ -1,4 +1,3 @@
-# attendance/views.py
 from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from rest_framework import viewsets
@@ -12,36 +11,24 @@ from .serializers import AttendanceSerializer, AttendanceRecordSerializer
 from employees.models import Employee
 
 
-# ==========================================================
-# HELPER
-# ==========================================================
 def get_active_employee(user):
-    try:
-        return Employee.objects.get(user=user, is_active=True)
-    except Employee.DoesNotExist:
-        return None
+    return Employee.objects.filter(user=user, is_active=True).first()
 
 
-# ==========================================================
-# ATTENDANCE VIEWSET
-# ==========================================================
 class AttendanceViewSet(viewsets.ModelViewSet):
-    queryset = Attendance.objects.all()
+    queryset = Attendance.objects.all().order_by("-id")
     serializer_class = AttendanceSerializer
     permission_classes = [IsAuthenticated]
 
-    # ---------------- CHECK-IN ----------------
-    @action(methods=["post"], detail=False)
+    @action(methods=["post"], detail=False, url_path="check-in")
     def check_in(self, request):
         employee = get_active_employee(request.user)
         if not employee:
             return Response({"error": "Employee not found"}, status=403)
 
         today = timezone.localdate()
-
-        attendance, created = Attendance.objects.get_or_create(
-            employee=employee,
-            date=today
+        attendance, _ = Attendance.objects.get_or_create(
+            employee=employee, date=today
         )
 
         if attendance.check_in:
@@ -49,14 +36,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 
         attendance.check_in = timezone.now()
         attendance.save()
+        return Response({"message": "Check-in successful"})
 
-        return Response({
-            "message": "Check-in successful",
-            "data": AttendanceSerializer(attendance).data
-        })
-
-    # ---------------- CHECK-OUT ----------------
-    @action(methods=["post"], detail=False)
+    @action(methods=["post"], detail=False, url_path="check-out")
     def check_out(self, request):
         employee = get_active_employee(request.user)
         if not employee:
@@ -64,8 +46,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 
         today = timezone.localdate()
         attendance = Attendance.objects.filter(
-            employee=employee,
-            date=today
+            employee=employee, date=today
         ).first()
 
         if not attendance or not attendance.check_in:
@@ -76,16 +57,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 
         attendance.check_out = timezone.now()
         attendance.save()
-
-        return Response({
-            "message": "Check-out successful",
-            "working_hours": attendance.working_hours
-        })
+        return Response({"message": "Check-out successful"})
 
 
-# ==========================================================
-# EMPLOYEE DASHBOARD API
-# ==========================================================
 @api_view(["GET"])
 def my_today_attendance(request):
     employee = get_active_employee(request.user)
@@ -96,69 +70,15 @@ def my_today_attendance(request):
     record = Attendance.objects.filter(employee=employee, date=today).first()
 
     if not record:
-        return Response({
-            "status": "NOT_MARKED",
-            "check_in": None,
-            "check_out": None,
-            "working_hours": 0
-        })
+        return Response({"status": "NOT_MARKED"})
 
     status_label = "PRESENT"
-    if record.is_late:
+    if record.check_in and not record.check_out and record.check_in.hour >= 9:
         status_label = "LATE"
-    if record.is_half_day:
-        status_label = "HALF_DAY"
 
     return Response({
         "status": status_label,
         "check_in": record.check_in,
         "check_out": record.check_out,
-        "working_hours": record.working_hours
+        "working_hours": record.working_hours,
     })
-
-
-# ==========================================================
-# HR APIs
-# ==========================================================
-@api_view(["GET"])
-def attendance_summary_today(request):
-    if request.user.role != "HR":
-        return Response({"error": "Unauthorized"}, status=403)
-
-    today = timezone.localdate()
-    total = Employee.objects.filter(is_active=True).count()
-    present = Attendance.objects.filter(date=today).count()
-
-    return Response({
-        "date": today,
-        "total": total,
-        "present": present,
-        "absent": total - present
-    })
-
-
-@api_view(["GET"])
-def attendance_heatmap(request, emp_id, year, month):
-    if request.user.role != "HR":
-        return Response({"error": "Unauthorized"}, status=403)
-
-    employee = Employee.objects.get(id=emp_id)
-    days = monthrange(year, month)[1]
-
-    data = []
-    for d in range(1, days + 1):
-        current = date(year, month, d)
-        record = Attendance.objects.filter(employee=employee, date=current).first()
-
-        if not record:
-            status = "ABSENT"
-        elif record.is_half_day:
-            status = "HALF_DAY"
-        elif record.is_late:
-            status = "LATE"
-        else:
-            status = "PRESENT"
-
-        data.append({"date": current, "status": status})
-
-    return Response(data)
