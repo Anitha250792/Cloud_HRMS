@@ -149,3 +149,19 @@ def apply_leave(request):
         "message": "Leave applied successfully",
         "id": leave.id
     }, status=201)
+
+
+def get_active_employee(user):
+    return Employee.objects.filter(user=user, is_active=True).first()
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def my_leaves(request):
+    employee = get_active_employee(request.user)
+    if not employee:
+        return Response([], status=200)
+
+    leaves = Leave.objects.filter(employee=employee).order_by("-id")
+    serializer = LeaveSerializer(leaves, many=True)
+    return Response(serializer.data)
