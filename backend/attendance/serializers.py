@@ -3,17 +3,13 @@ from .models import Attendance
 
 
 class AttendanceSerializer(serializers.ModelSerializer):
+    working_hours = serializers.FloatField(read_only=True)
+
     class Meta:
         model = Attendance
-        fields = [
-            "id",
-            "employee",
-            "date",
-            "check_in",
-            "check_out",
-            "working_hours",
-        ]
-        read_only_fields = ["employee", "working_hours"]
+        fields = "__all__"
+        read_only_fields = ["employee"]
+
 
 
 class AttendanceRecordSerializer(serializers.ModelSerializer):

@@ -158,7 +158,11 @@ def get_active_employee(user):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def my_leaves(request):
-    employee = get_active_employee(request.user)
+    employee = Employee.objects.filter(
+        user=request.user,
+        is_active=True
+    ).first()
+
     if not employee:
         return Response([], status=200)
 

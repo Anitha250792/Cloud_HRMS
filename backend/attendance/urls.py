@@ -3,7 +3,8 @@ from .views import (
     AttendanceViewSet,
     my_today_attendance,
     attendance_records,
-    attendance_balance
+    attendance_balance,
+    attendance_summary
 )
 
 urlpatterns = [
@@ -12,4 +13,6 @@ urlpatterns = [
     path("my-today/", my_today_attendance),
     path("records/", attendance_records),
     path("balance/", attendance_balance),
+    path("summary/", attendance_summary),
+
 ]

@@ -98,11 +98,13 @@ def my_today_attendance(request):
         status_label = "LATE"
 
     return Response({
-        "status": status_label,
-        "check_in": record.check_in,
-        "check_out": record.check_out,
-        "working_hours": record.working_hours,
-    })
+    "status": status_label,
+    "check_in": record.check_in,
+    "check_out": record.check_out,
+    "working_hours": record.working_hours,
+    "is_checked_in": bool(record.check_in and not record.check_out),
+})
+
 
 
 # ------------------------------------------------------
@@ -146,3 +148,22 @@ def attendance_balance(request):
         "present_days": present_days,
         "absent_days": absent_days,
     })
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def attendance_summary(request):
+    employee = get_active_employee(request.user)
+    if not employee:
+        return Response({})
+
+    total_days = Attendance.objects.filter(employee=employee).count()
+    worked_days = Attendance.objects.filter(
+        employee=employee,
+        check_out__isnull=False
+    ).count()
+
+    return Response({
+        "total_days": total_days,
+        "worked_days": worked_days,
+    })
+
