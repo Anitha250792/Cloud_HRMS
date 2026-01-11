@@ -65,8 +65,7 @@ class LeaveViewSet(viewsets.ModelViewSet):
     # ================= HR APPROVE =================
 @action(detail=True, methods=["post"])
 def approve(self, request, pk=None):
-    employee = get_active_employee(request.user)
-    if not employee or employee.role != "HR":
+    if request.user.role != "HR":
         return Response({"error": "Unauthorized"}, status=403)
 
     leave = self.get_object()
