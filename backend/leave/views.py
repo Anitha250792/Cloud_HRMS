@@ -63,33 +63,44 @@ class LeaveViewSet(viewsets.ModelViewSet):
         )
 
     # ================= HR APPROVE =================
-    @action(detail=True, methods=["post"])
-    def approve(self, request, pk=None):
-        if request.user.role != "HR":
-            return Response({"error": "Unauthorized"}, status=403)
+@action(detail=True, methods=["post"])
+def approve(self, request, pk=None):
+    employee = get_active_employee(request.user)
+    if not employee or employee.role != "HR":
+        return Response({"error": "Unauthorized"}, status=403)
 
-        leave = self.get_object()
-        leave.status = "APPROVED"
-        leave.save()
-        return Response({"message": "Leave approved"})
+    leave = self.get_object()
+    leave.status = "APPROVED"
+    leave.save()
+    return Response({"message": "Leave approved"})
 
     # ================= HR REJECT =================
-    @action(detail=True, methods=["post"])
-    def reject(self, request, pk=None):
-        if request.user.role != "HR":
-            return Response({"error": "Unauthorized"}, status=403)
+@action(detail=True, methods=["post"])
+def reject(self, request, pk=None):
+    employee = get_active_employee(request.user)
+    if not employee or employee.role != "HR":
+        return Response({"error": "Unauthorized"}, status=403)
 
-        leave = self.get_object()
-        leave.status = "REJECTED"
-        leave.save()
-        return Response({"message": "Leave rejected"})
+    leave = self.get_object()
+    leave.status = "REJECTED"
+    leave.save()
+    return Response({"message": "Leave rejected"})
 
 
 # ================= EMPLOYEE – MY LEAVES =================
+def get_active_employee(user):
+    return Employee.objects.filter(user=user, is_active=True).first()
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def my_leaves(request):
-    leaves = Leave.objects.filter(employee=request.user).order_by("-id")
+    employee = get_active_employee(request.user)
+
+    if not employee:
+        return Response([], status=200)
+
+    leaves = Leave.objects.filter(employee=employee).order_by("-id")
     serializer = LeaveSerializer(leaves, many=True)
     return Response(serializer.data)
 
@@ -150,22 +161,13 @@ def apply_leave(request):
         "id": leave.id
     }, status=201)
 
-
-def get_active_employee(user):
-    return Employee.objects.filter(user=user, is_active=True).first()
-
-
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def my_leaves(request):
-    employee = Employee.objects.filter(
-        user=request.user,
-        is_active=True
-    ).first()
+def pending_leaves(request):
+    if request.user.role != "HR":
+        return Response({"error": "Unauthorized"}, status=403)
 
-    if not employee:
-        return Response([], status=200)
-
-    leaves = Leave.objects.filter(employee=employee).order_by("-id")
+    leaves = Leave.objects.filter(status="PENDING").order_by("-id")
     serializer = LeaveSerializer(leaves, many=True)
     return Response(serializer.data)
+
