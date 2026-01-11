@@ -13,9 +13,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # 🔐 CORE SETTINGS
 # ======================================================
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
-    raise Exception("SECRET_KEY is not set")
+SECRET_KEY = os.getenv(
+    "SECRET_KEY",
+    "django-insecure-change-this-only-for-local"
+)
 
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
@@ -33,6 +34,7 @@ SITE_ID = 1
 # ======================================================
 
 INSTALLED_APPS = [
+    # Django
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -48,22 +50,22 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_crontab",
 
-    # Auth (EMAIL / PASSWORD ONLY)
+    # Auth
     "dj_rest_auth",
     "dj_rest_auth.registration",
     "allauth",
     "allauth.account",
 
     # Local apps
+    "accounts",
     "employees",
     "attendance",
-    "payroll",
     "leave",
-    "accounts",
+    "payroll",
 ]
 
 # ======================================================
-# 🔑 REST + JWT
+# 🔑 REST + JWT (CRITICAL FIX)
 # ======================================================
 
 REST_FRAMEWORK = {
@@ -71,10 +73,9 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.AllowAny",
+        "rest_framework.permissions.IsAuthenticated",
     ),
 }
-
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
@@ -93,9 +94,11 @@ MIDDLEWARE = [
 
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
 
+    # ⚠️ CSRF middleware REQUIRED (JWT safe)
+    "django.middleware.csrf.CsrfViewMiddleware",
+
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
     "allauth.account.middleware.AccountMiddleware",
 
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -127,7 +130,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "hrms.wsgi.application"
 
 # ======================================================
-# 🔐 AUTH CONFIG (EMAIL LOGIN ONLY)
+# 🔐 AUTH CONFIG
 # ======================================================
 
 AUTH_USER_MODEL = "accounts.User"
@@ -145,7 +148,7 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
 # ======================================================
-# 🗄 DATABASE (RENDER SAFE)
+# 🗄 DATABASE (Render-safe)
 # ======================================================
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -155,7 +158,7 @@ if DATABASE_URL:
         "default": dj_database_url.parse(
             DATABASE_URL,
             conn_max_age=600,
-            ssl_require=False,
+            ssl_require=True,
         )
     }
 else:
@@ -172,13 +175,19 @@ else:
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+STATICFILES_STORAGE = (
+    "whitenoise.storage.CompressedManifestStaticFilesStorage"
+)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ======================================================
-# 🌍 CORS + CSRF
+# 🌍 CORS + CSRF (FIXED FOR JWT)
 # ======================================================
+
+CORS_ALLOW_ALL_ORIGINS = True
+
 CORS_ALLOW_HEADERS = [
     "authorization",
     "content-type",
@@ -198,17 +207,13 @@ CORS_ALLOW_METHODS = [
     "OPTIONS",
 ]
 
-
-CORS_ALLOW_ALL_ORIGINS = True
-
 CSRF_TRUSTED_ORIGINS = [
     "https://cloud-hrms-1.onrender.com",
     "https://cloud-hrms-frontend-1.onrender.com",
 ]
 
-CSRF_USE_SESSIONS = False
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # ======================================================
@@ -242,5 +247,8 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-APPEND_SLASH = True
+# ======================================================
+# 🧩 MISC
+# ======================================================
 
+APPEND_SLASH = True
