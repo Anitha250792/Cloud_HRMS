@@ -1,26 +1,30 @@
-# backend/accounts/serializers.py
 from rest_framework import serializers
+from django.contrib.auth import authenticate
 from .models import User
 
 
-class CustomRegisterSerializer(serializers.ModelSerializer):
-    password1 = serializers.CharField(write_only=True)
-    password2 = serializers.CharField(write_only=True)
+# =====================================================
+# REGISTER SERIALIZER
+# =====================================================
+
+class RegisterSerializer(serializers.ModelSerializer):
+    password1 = serializers.CharField(write_only=True, min_length=8)
+    password2 = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
         model = User
-        fields = ["name", "email", "role", "password1", "password2"]
+        fields = ("name", "email", "role", "password1", "password2")
 
-    def validate(self, data):
-        if data["password1"] != data["password2"]:
-            raise serializers.ValidationError({
-                "password": "Passwords do not match"
-            })
-        return data
+    def validate(self, attrs):
+        if attrs["password1"] != attrs["password2"]:
+            raise serializers.ValidationError(
+                {"password": "Passwords do not match"}
+            )
+        return attrs
 
     def create(self, validated_data):
-        validated_data.pop("password2")
         password = validated_data.pop("password1")
+        validated_data.pop("password2")
 
         user = User.objects.create_user(
             email=validated_data["email"],
@@ -29,3 +33,30 @@ class CustomRegisterSerializer(serializers.ModelSerializer):
             password=password,
         )
         return user
+
+
+# =====================================================
+# LOGIN SERIALIZER (VERY IMPORTANT FOR 401 ISSUE)
+# =====================================================
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        email = data.get("email")
+        password = data.get("password")
+
+        if not email or not password:
+            raise serializers.ValidationError("Email and password are required")
+
+        user = authenticate(email=email, password=password)
+
+        if not user:
+            raise serializers.ValidationError("Invalid email or password")
+
+        if not user.is_active:
+            raise serializers.ValidationError("User account is disabled")
+
+        data["user"] = user
+        return data

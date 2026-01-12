@@ -8,43 +8,50 @@ from .views import (
     health_check,
 )
 
-from auth.views import google_login
-from employees.auth_api import RegisterAPIView
-
+from accounts.views import RegisterView
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
 
 urlpatterns = [
-    # ✅ Render health check (MUST be first)
+    # ------------------------
+    # HEALTH CHECK
+    # ------------------------
     path("health/", health_check),
 
-    # Root
+    # ------------------------
+    # ROOT
+    # ------------------------
     path("", RoleRedirectView.as_view(), name="root"),
 
-    # Django admin
+    # ------------------------
+    # ADMIN
+    # ------------------------
     path("admin/", admin.site.urls),
 
-    # AUTH
-    path("api/auth/", include("dj_rest_auth.urls")),
-    path("api/auth/register/", include("dj_rest_auth.registration.urls")),
-    path("api/auth/google/", google_login),
-    path("api/auth/", include("dj_rest_auth.urls")),
+    # ------------------------
+    # AUTH (✅ ONLY THIS)
+    # ------------------------
+    path("api/auth/register/", RegisterView.as_view()),
+    path("api/auth/login/", TokenObtainPairView.as_view()),
+    path("api/auth/token/refresh/", TokenRefreshView.as_view()),
 
+    # ------------------------
     # BUSINESS APIs
+    # ------------------------
     path("api/employees/", include("employees.urls")),
     path("api/attendance/", include("attendance.urls")),
     path("api/payroll/", include("payroll.urls")),
     path("api/leave/", include("leave.urls")),
 
-    # JWT
-    path("api/token/", TokenObtainPairView.as_view()),
-    path("api/token/refresh/", TokenRefreshView.as_view()),
-
+    # ------------------------
     # DASHBOARD
+    # ------------------------
     path("api/dashboard/stats/", admin_dashboard_stats),
 
-    # Frontend SPA catch-all
+    # ------------------------
+    # FRONTEND SPA
+    # ------------------------
     path("<path:path>", TemplateView.as_view(template_name="index.html")),
 ]
