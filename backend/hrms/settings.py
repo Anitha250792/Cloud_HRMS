@@ -50,11 +50,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_crontab",
 
-    # Auth
-    "dj_rest_auth",
-    "dj_rest_auth.registration",
-    "allauth",
-    "allauth.account",
+   
 
     # Local apps
     "accounts",
@@ -136,7 +132,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
-    "allauth.account.auth_backends.AuthenticationBackend",
+    
 ]
 
 ACCOUNT_LOGIN_METHODS = {"email"}

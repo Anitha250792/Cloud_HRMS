@@ -6,28 +6,20 @@ from .views import RoleRedirectView, admin_dashboard_stats, health_check
 from accounts.views import RegisterView, LoginView
 
 urlpatterns = [
-    # Health
     path("health/", health_check),
-
-    # Root
     path("", RoleRedirectView.as_view(), name="root"),
-
-    # Admin
     path("admin/", admin.site.urls),
 
-    # ✅ AUTH (ONLY CUSTOM)
+    # AUTH (ONLY THIS)
     path("api/auth/register/", RegisterView.as_view()),
     path("api/auth/login/", LoginView.as_view()),
 
-    # Business APIs
+    # BUSINESS
     path("api/employees/", include("employees.urls")),
     path("api/attendance/", include("attendance.urls")),
     path("api/payroll/", include("payroll.urls")),
     path("api/leave/", include("leave.urls")),
 
-    # Dashboard
-    path("api/dashboard/stats/", admin_dashboard_stats),
-
-    # Frontend SPA
+    # SPA
     path("<path:path>", TemplateView.as_view(template_name="index.html")),
 ]

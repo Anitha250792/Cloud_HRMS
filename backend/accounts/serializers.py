@@ -48,13 +48,16 @@ class LoginSerializer(serializers.Serializer):
         email = data.get("email")
         password = data.get("password")
 
-        user = authenticate(username=email, password=password)
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid email or password")
 
-        if not user:
+        if not user.check_password(password):
             raise serializers.ValidationError("Invalid email or password")
 
         if not user.is_active:
-            raise serializers.ValidationError("User is inactive")
+            raise serializers.ValidationError("User account is inactive")
 
         data["user"] = user
         return data
