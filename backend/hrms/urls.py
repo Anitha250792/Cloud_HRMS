@@ -8,7 +8,7 @@ from .views import (
     health_check,
 )
 
-from accounts.views import RegisterView
+from accounts.views import RegisterView, LoginView
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -34,8 +34,7 @@ urlpatterns = [
     # AUTH (✅ ONLY THIS)
     # ------------------------
     path("api/auth/register/", RegisterView.as_view()),
-    path("api/auth/login/", TokenObtainPairView.as_view()),
-    path("api/auth/token/refresh/", TokenRefreshView.as_view()),
+    path("api/auth/login/", LoginView.as_view()),
 
     # ------------------------
     # BUSINESS APIs

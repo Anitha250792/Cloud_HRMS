@@ -39,24 +39,19 @@ class RegisterSerializer(serializers.ModelSerializer):
 # LOGIN SERIALIZER (VERY IMPORTANT FOR 401 ISSUE)
 # =====================================================
 
+
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField()
 
     def validate(self, data):
-        email = data.get("email")
-        password = data.get("password")
-
-        if not email or not password:
-            raise serializers.ValidationError("Email and password are required")
-
-        user = authenticate(email=email, password=password)
+        user = authenticate(
+            email=data["email"],
+            password=data["password"],
+        )
 
         if not user:
-            raise serializers.ValidationError("Invalid email or password")
-
-        if not user.is_active:
-            raise serializers.ValidationError("User account is disabled")
+            raise serializers.ValidationError("Invalid credentials")
 
         data["user"] = user
         return data
