@@ -62,30 +62,36 @@ class LeaveViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
-    # ================= HR APPROVE =================
-@action(detail=True, methods=["post"])
-def approve(self, request, pk=None):
-    if request.user.role != "HR":
-        return Response({"error": "Unauthorized"}, status=403)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def approve_leave(request, leave_id):
+    if request.user.role not in ["HR", "ADMIN"]:
+        return Response({"detail": "Unauthorized"}, status=403)
 
-    leave = self.get_object()
-    leave.status = "APPROVED"
-    leave.save()
-    return Response({"message": "Leave approved"})
-
-    # ================= HR REJECT =================
-@action(detail=True, methods=["post"])
-def reject(self, request, pk=None):
-    employee = get_active_employee(request.user)
-    if not employee or employee.role != "HR":
-        return Response({"error": "Unauthorized"}, status=403)
-
-    leave = self.get_object()
-    leave.status = "REJECTED"
-    leave.save()
-    return Response({"message": "Leave rejected"})
+    try:
+        leave = Leave.objects.get(id=leave_id)
+        leave.status = "APPROVED"
+        leave.approved_by = request.user
+        leave.save()
+        return Response({"message": "Leave approved"}, status=200)
+    except Leave.DoesNotExist:
+        return Response({"detail": "Leave not found"}, status=404)
 
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def reject_leave(request, leave_id):
+    if request.user.role not in ["HR", "ADMIN"]:
+        return Response({"detail": "Unauthorized"}, status=403)
+
+    try:
+        leave = Leave.objects.get(id=leave_id)
+        leave.status = "REJECTED"
+        leave.approved_by = request.user
+        leave.save()
+        return Response({"message": "Leave rejected"}, status=200)
+    except Leave.DoesNotExist:
+        return Response({"detail": "Leave not found"}, status=404)
 # ================= EMPLOYEE – MY LEAVES =================
 def get_active_employee(user):
     return Employee.objects.filter(user=user, is_active=True).first()
