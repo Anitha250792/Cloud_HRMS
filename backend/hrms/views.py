@@ -25,7 +25,7 @@ class RoleRedirectView(APIView):
 
 
 @api_view(["GET"])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def admin_dashboard_stats(request):
     today = timezone.localdate()
 
@@ -51,8 +51,6 @@ def admin_dashboard_stats(request):
         "pending_leaves": pending_leaves,
         "payroll_this_month": payroll_total,
     })
-
-
 
 
 @api_view(["GET"])
