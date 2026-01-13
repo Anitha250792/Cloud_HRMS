@@ -50,7 +50,12 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_crontab",
 
-   
+    # 🔑 AUTH (MISSING)
+    "dj_rest_auth",
+    "dj_rest_auth.registration",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
 
     # Local apps
     "accounts",
@@ -59,6 +64,7 @@ INSTALLED_APPS = [
     "leave",
     "payroll",
 ]
+
 
 # ======================================================
 # 🔑 REST + JWT (CRITICAL FIX)
@@ -89,15 +95,17 @@ MIDDLEWARE = [
 
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-
-    # ⚠️ CSRF middleware REQUIRED (JWT safe)
     "django.middleware.csrf.CsrfViewMiddleware",
 
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    
+
+    # ✅ REQUIRED FOR ALLAUTH
+    "allauth.account.middleware.AccountMiddleware",
+
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
 
 # ======================================================
 # 🌐 URL / TEMPLATES
@@ -124,22 +132,26 @@ TEMPLATES = [
 WSGI_APPLICATION = "hrms.wsgi.application"
 
 # ======================================================
-# 🔐 AUTH CONFIG
+# 🔐 AUTH CONFIG (FINAL)
 # ======================================================
 
 AUTH_USER_MODEL = "accounts.User"
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
-    
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
+
+
 
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 
-LOGIN_URL = "/admin/login/"
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/"
+REST_AUTH = {
+    "USE_JWT": True,
+    "JWT_AUTH_HTTPONLY": False,
+    "LOGIN_SERIALIZER": "dj_rest_auth.serializers.LoginSerializer",
+}
 
 # ======================================================
 # 🗄 DATABASE (Render-safe)
