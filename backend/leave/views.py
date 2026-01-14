@@ -63,10 +63,11 @@ class LeaveViewSet(viewsets.ModelViewSet):
         )
 
     # ================= HR APPROVE =================
-@action(detail=True, methods=["post"])
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def approve_leave(request, leave_id):
     if request.user.role not in ["HR", "ADMIN"]:
-        return Response({"detail": "Unauthorized"}, status=403)
+        return Response({"error": "Unauthorized"}, status=403)
 
     try:
         leave = Leave.objects.get(id=leave_id)
@@ -75,13 +76,14 @@ def approve_leave(request, leave_id):
         leave.save()
         return Response({"message": "Leave approved"}, status=200)
     except Leave.DoesNotExist:
-        return Response({"detail": "Leave not found"}, status=404)
-    
-    # ================= HR REJECT =================
-@action(detail=True, methods=["post"])
+        return Response({"error": "Leave not found"}, status=404)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def reject_leave(request, leave_id):
     if request.user.role not in ["HR", "ADMIN"]:
-        return Response({"detail": "Unauthorized"}, status=403)
+        return Response({"error": "Unauthorized"}, status=403)
 
     try:
         leave = Leave.objects.get(id=leave_id)
@@ -90,8 +92,7 @@ def reject_leave(request, leave_id):
         leave.save()
         return Response({"message": "Leave rejected"}, status=200)
     except Leave.DoesNotExist:
-        return Response({"detail": "Leave not found"}, status=404)
-
+        return Response({"error": "Leave not found"}, status=404)
 
 # ================= EMPLOYEE – MY LEAVES =================
 def get_active_employee(user):
@@ -170,7 +171,7 @@ def apply_leave(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def pending_leaves(request):
-    if request.user.role != "HR":
+    if request.user.role not in ["HR", "ADMIN"]:
         return Response({"error": "Unauthorized"}, status=403)
 
     leaves = Leave.objects.filter(status="PENDING").order_by("-id")
