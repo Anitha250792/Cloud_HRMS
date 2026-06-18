@@ -3,36 +3,22 @@ from .models import Attendance
 
 
 class AttendanceSerializer(serializers.ModelSerializer):
-    working_hours = serializers.FloatField(read_only=True)
 
-    class Meta:
-        model = Attendance
-        fields = "__all__"
-        read_only_fields = ["employee"]
-
-
-
-class AttendanceRecordSerializer(serializers.ModelSerializer):
-    employee = serializers.CharField(source="employee.name", read_only=True)
-    status = serializers.SerializerMethodField()
+    employee_name = serializers.CharField(
+        source="employee.name",
+        read_only=True
+    )
 
     class Meta:
         model = Attendance
         fields = [
             "id",
             "employee",
+            "employee_name",
             "date",
             "check_in",
             "check_out",
             "working_hours",
-            "status",
+            "is_late",
+            "is_half_day",
         ]
-
-    def get_status(self, obj):
-        if not obj.check_in:
-            return "ABSENT"
-        if obj.check_in and not obj.check_out:
-            return "CHECKED IN"
-        if obj.check_in.hour > 10:
-            return "LATE"
-        return "PRESENT"

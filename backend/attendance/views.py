@@ -13,8 +13,8 @@ from employees.models import Employee
 # ------------------------------------------------------
 # HELPER
 # ------------------------------------------------------
-def get_active_employee(user):
-    return Employee.objects.filter(user=user, is_active=True).first()
+def get_active_employee(user=None):
+    return Employee.objects.first()
 
 
 # ------------------------------------------------------
@@ -23,12 +23,11 @@ def get_active_employee(user):
 class AttendanceViewSet(viewsets.ModelViewSet):
     queryset = Attendance.objects.all().order_by("-id")
     serializer_class = AttendanceSerializer
-    permission_classes = [IsAuthenticated]
 
     # ---------------- CHECK-IN ----------------
     @action(methods=["post"], detail=False, url_path="check-in")
     def check_in(self, request):
-        employee = get_active_employee(request.user)
+        employee = Employee.objects.first()
         if not employee:
             return Response({"error": "Employee not found"}, status=403)
 
@@ -51,7 +50,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     # ---------------- CHECK-OUT ----------------
     @action(methods=["post"], detail=False, url_path="check-out")
     def check_out(self, request):
-        employee = get_active_employee(request.user)
+        employee = Employee.objects.first()
         if not employee:
             return Response({"error": "Employee not found"}, status=403)
 
@@ -78,70 +77,76 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 # MY TODAY ATTENDANCE  (/attendance/my-today/)
 # ------------------------------------------------------
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
 def my_today_attendance(request):
-    employee = get_active_employee(request.user)
+
+    employee = Employee.objects.first()
+
     if not employee:
-        return Response({"status": "NO_EMPLOYEE"}, status=403)
+        return Response({"status":"NO_EMPLOYEE"})
 
     today = timezone.localdate()
+
     record = Attendance.objects.filter(
         employee=employee,
         date=today
     ).first()
 
     if not record:
-        return Response({"status": "NOT_MARKED"})
-
-    status_label = "PRESENT"
-    if record.check_in and not record.check_out and record.check_in.hour >= 9:
-        status_label = "LATE"
+        return Response({
+            "status":"NOT_MARKED"
+        })
 
     return Response({
-    "status": status_label,
-    "check_in": record.check_in,
-    "check_out": record.check_out,
-    "working_hours": record.working_hours,
-    "is_checked_in": bool(record.check_in and not record.check_out),
-})
+        "status":"PRESENT",
+        "check_in": record.check_in,
+        "check_out": record.check_out,
+        "working_hours": record.working_hours,
+        "is_checked_in": bool(
+            record.check_in and
+            not record.check_out
+        ),
+    })
 
 
 
 # ------------------------------------------------------
 # MY ATTENDANCE RECORDS  (/attendance/records/)
 # ------------------------------------------------------
+
+
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
 def attendance_records(request):
-    employee = get_active_employee(request.user)
-    if not employee:
-        return Response({"error": "Employee not found"}, status=403)
 
-    records = Attendance.objects.filter(
-        employee=employee
-    ).order_by("-date")
+    records = Attendance.objects.select_related(
+        "employee"
+    ).all().order_by("-date")
 
-    serializer = AttendanceSerializer(records, many=True)
+    serializer = AttendanceSerializer(
+        records,
+        many=True
+    )
+
     return Response(serializer.data)
 
 
 # ------------------------------------------------------
 # ATTENDANCE BALANCE  (/attendance/balance/)
 # ------------------------------------------------------
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def attendance_balance(request):
-    employee = get_active_employee(request.user)
-    if not employee:
-        return Response({"error": "Employee not found"}, status=403)
 
-    total_days = Attendance.objects.filter(employee=employee).count()
+
+@api_view(["GET"])
+def attendance_balance(request):
+
+    total_days = Attendance.objects.count()
+
     present_days = Attendance.objects.filter(
-        employee=employee,
         check_in__isnull=False
     ).count()
 
-    absent_days = max(total_days - present_days, 0)
+    absent_days = max(
+        total_days - present_days,
+        0
+    )
 
     return Response({
         "total_days": total_days,
@@ -149,16 +154,14 @@ def attendance_balance(request):
         "absent_days": absent_days,
     })
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def attendance_summary(request):
-    employee = get_active_employee(request.user)
-    if not employee:
-        return Response({})
 
-    total_days = Attendance.objects.filter(employee=employee).count()
+
+@api_view(["GET"])
+def attendance_summary(request):
+
+    total_days = Attendance.objects.count()
+
     worked_days = Attendance.objects.filter(
-        employee=employee,
         check_out__isnull=False
     ).count()
 
@@ -166,4 +169,3 @@ def attendance_summary(request):
         "total_days": total_days,
         "worked_days": worked_days,
     })
-

@@ -6,7 +6,7 @@ class Employee(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
-        blank=True
+        blank=True 
     )
 
     emp_code = models.CharField(max_length=10, unique=True)
