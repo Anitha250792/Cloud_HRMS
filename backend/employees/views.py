@@ -1,7 +1,7 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-
 from django.contrib.auth import get_user_model
 
 from .models import Employee
@@ -10,39 +10,47 @@ from .serializers import EmployeeSerializer
 User = get_user_model()
 
 
-# ===================== LIST EMPLOYEES =====================
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def list_employees(request):
-    try:
-        employees = Employee.objects.filter(
-            is_active=True
-        ).select_related("user")
 
-        serializer = EmployeeSerializer(
-            employees,
-            many=True
+    employees = Employee.objects.filter(
+        is_active=True
+    ).select_related("user")
+
+    serializer = EmployeeSerializer(
+        employees,
+        many=True
+    )
+
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_employee(request, pk):
+
+    try:
+
+        employee = Employee.objects.get(
+            pk=pk,
+            is_active=True
         )
+
+        serializer = EmployeeSerializer(employee)
 
         return Response(serializer.data)
 
-    except Exception as e:
-
-        print(
-            "EMPLOYEE LIST ERROR:",
-            str(e)
-        )
+    except Employee.DoesNotExist:
 
         return Response(
-            {
-                "error":
-                "Internal server error"
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            {"error": "Employee not found"},
+            status=status.HTTP_404_NOT_FOUND
         )
 
 
-# ===================== CREATE EMPLOYEE =====================
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def create_employee(request):
 
     try:
@@ -52,105 +60,69 @@ def create_employee(request):
         if not email:
 
             return Response(
-                {
-                    "email":
-                    ["Email is required"]
-                },
-                status=400
+                {"error": "Email required"},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Create User
-
-        user, user_created = User.objects.get_or_create(
+        user, created = User.objects.get_or_create(
             email=email,
             defaults={
-                "name": request.data.get(
-                    "name",
-                    ""
-                ),
+                "name": request.data.get("name", ""),
                 "role": "EMPLOYEE",
-            },
+            }
         )
 
-        if user_created:
-
-            user.set_password(
-                "Default@123"
-            )
-
+        if created:
+            user.set_password("Default@123")
             user.save()
 
-        # Create Employee
+        employee = Employee.objects.create(
 
-        employee, created = Employee.objects.get_or_create(
             user=user,
-            defaults={
-                "emp_code": request.data.get(
-                    "emp_code"
-                ),
-                "name": request.data.get(
-                    "name"
-                ),
-                "email": email,
-                "department": request.data.get(
-                    "department"
-                ),
-                "role": request.data.get(
-                    "role"
-                ),
-                "salary": request.data.get(
-                    "salary"
-                ),
-                "date_joined": request.data.get(
-                    "date_joined"
-                ),
-                "is_active": True,
-            },
+
+            emp_code=request.data.get("emp_code"),
+            name=request.data.get("name"),
+            email=email,
+
+            phone=request.data.get("phone"),
+            gender=request.data.get("gender"),
+            dob=request.data.get("dob"),
+            marital_status=request.data.get("marital_status"),
+            address=request.data.get("address"),
+            emergency_contact=request.data.get("emergency_contact"),
+
+            department=request.data.get("department"),
+            role=request.data.get("role"),
+            designation=request.data.get("designation"),
+            employment_type=request.data.get("employment_type"),
+            reporting_manager=request.data.get("reporting_manager"),
+            date_joined=request.data.get("date_joined"),
+
+            salary=request.data.get("salary"),
+
+            bank_name=request.data.get("bank_name"),
+            bank_account=request.data.get("bank_account"),
+            ifsc_code=request.data.get("ifsc_code"),
+            pan_number=request.data.get("pan_number"),
+            pf_number=request.data.get("pf_number"),
+
+            is_active=True,
         )
 
-        if not created:
-
-            employee.is_active = True
-
-            employee.save()
-
-            return Response(
-                {
-                    "message":
-                    "Employee already exists and reactivated",
-                    "employee_id":
-                    employee.id,
-                }
-            )
-
         return Response(
-            {
-                "message":
-                "Employee created successfully",
-                "employee_id":
-                employee.id,
-            },
+            EmployeeSerializer(employee).data,
             status=status.HTTP_201_CREATED
         )
 
     except Exception as e:
 
-        print(
-            "CREATE ERROR:",
-            str(e)
-        )
-
         return Response(
-            {
-                "error":
-                str(e)
-            },
-            status=500
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-
-# ===================== UPDATE EMPLOYEE =====================
 @api_view(["PUT"])
+@permission_classes([IsAuthenticated])
 def update_employee(request, pk):
 
     try:
@@ -172,78 +144,34 @@ def update_employee(request, pk):
 
         serializer.save()
 
-        return Response(
-            serializer.data
-        )
+        return Response(serializer.data)
 
     except Employee.DoesNotExist:
 
         return Response(
-            {
-                "error":
-                "Employee not found"
-            },
-            status=404
+            {"error": "Employee not found"},
+            status=status.HTTP_404_NOT_FOUND
         )
 
 
-# ===================== DELETE EMPLOYEE =====================
 @api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
 def delete_employee(request, pk):
 
     try:
 
-        employee = Employee.objects.get(
-            pk=pk
-        )
+        employee = Employee.objects.get(pk=pk)
 
         employee.is_active = False
-
         employee.save()
 
         return Response(
-            {
-                "message":
-                "Employee deleted successfully"
-            }
+            {"message": "Employee deleted successfully"}
         )
 
     except Employee.DoesNotExist:
 
         return Response(
-            {
-                "error":
-                "Employee not found"
-            },
-            status=404
-        )
-
-
-# ===================== GET SINGLE EMPLOYEE =====================
-@api_view(["GET"])
-def get_employee(request, pk):
-
-    try:
-
-        employee = Employee.objects.get(
-            pk=pk,
-            is_active=True
-        )
-
-        serializer = EmployeeSerializer(
-            employee
-        )
-
-        return Response(
-            serializer.data
-        )
-
-    except Employee.DoesNotExist:
-
-        return Response(
-            {
-                "error":
-                "Employee not found"
-            },
-            status=404
+            {"error": "Employee not found"},
+            status=status.HTTP_404_NOT_FOUND
         )

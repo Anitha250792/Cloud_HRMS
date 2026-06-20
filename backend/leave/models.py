@@ -10,7 +10,7 @@ class Leave(models.Model):
         ("UNPAID", "Unpaid Leave"),
     ]
 
-    STATUS_CHOICES = [
+    STATUS_CHOICES = [  
         ("PENDING", "Pending"),
         ("APPROVED", "Approved"),
         ("REJECTED", "Rejected"),

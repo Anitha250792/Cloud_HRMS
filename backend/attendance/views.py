@@ -2,6 +2,8 @@ from rest_framework.decorators import api_view, action, permission_classes
 from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
+
 from django.utils import timezone
 from datetime import timedelta
 
@@ -13,21 +15,34 @@ from employees.models import Employee
 # ------------------------------------------------------
 # HELPER
 # ------------------------------------------------------
-def get_active_employee(user=None):
-    return Employee.objects.first()
+def get_employee_from_user(user):
+
+    try:
+        return Employee.objects.get(
+            user=user,
+            is_active=True
+        )
+
+    except Employee.DoesNotExist:
+        return None
 
 
 # ------------------------------------------------------
 # ATTENDANCE VIEWSET
 # ------------------------------------------------------
 class AttendanceViewSet(viewsets.ModelViewSet):
-    queryset = Attendance.objects.all().order_by("-id")
+
+    permission_classes = [IsAuthenticated]
+
+    queryset = Attendance.objects.all()
     serializer_class = AttendanceSerializer
 
     # ---------------- CHECK-IN ----------------
     @action(methods=["post"], detail=False, url_path="check-in")
     def check_in(self, request):
-        employee = Employee.objects.first()
+        employee = get_employee_from_user(
+    request.user
+)
         if not employee:
             return Response({"error": "Employee not found"}, status=403)
 
@@ -50,7 +65,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     # ---------------- CHECK-OUT ----------------
     @action(methods=["post"], detail=False, url_path="check-out")
     def check_out(self, request):
-        employee = Employee.objects.first()
+        employee = get_employee_from_user(
+    request.user
+)
         if not employee:
             return Response({"error": "Employee not found"}, status=403)
 
@@ -77,9 +94,12 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 # MY TODAY ATTENDANCE  (/attendance/my-today/)
 # ------------------------------------------------------
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def my_today_attendance(request):
 
-    employee = Employee.objects.first()
+    employee = get_employee_from_user(
+    request.user
+)
 
     if not employee:
         return Response({"status":"NO_EMPLOYEE"})
