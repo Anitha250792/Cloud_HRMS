@@ -65,7 +65,7 @@ INSTALLED_APPS = [
     "payroll",
     "notifications",
     "dashboard",
-    "auth",
+    "authentication",
 ]
 
 
