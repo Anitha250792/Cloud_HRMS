@@ -4,7 +4,7 @@ from django.views.generic import TemplateView
 
 from .views import RoleRedirectView, admin_dashboard_stats, health_check
 from accounts.views import RegisterView, LoginView
-from .views import admin_dashboard_stats
+
 
 
 urlpatterns = [
@@ -16,8 +16,11 @@ urlpatterns = [
     path("api/auth/register/", RegisterView.as_view()),
     path("api/auth/login/", LoginView.as_view()),
 
-    # ✅ DASHBOARD (MISSING)
-    path("api/dashboard/stats/", admin_dashboard_stats),
+    path(
+    "api/dashboard/",
+    include("dashboard.urls")
+),
+  
 
     # BUSINESS
     path("api/employees/", include("employees.urls")),

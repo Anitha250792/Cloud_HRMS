@@ -63,6 +63,9 @@ INSTALLED_APPS = [
     "attendance",
     "leave",
     "payroll",
+    "notifications",
+    "dashboard",
+    "auth",
 ]
 
 
