@@ -115,10 +115,11 @@ def create_employee(request):
         )
 
     except Exception as e:
+        print("CREATE EMPLOYEE ERROR:", str(e))
 
         return Response(
             {"error": str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            status=500
         )
 
 @api_view(["PUT"])
