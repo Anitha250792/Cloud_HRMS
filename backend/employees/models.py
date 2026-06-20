@@ -27,12 +27,14 @@ class Employee(models.Model):
 
     phone = models.CharField(
         max_length=15,
-        blank=True
+        blank=True,
+        null=True
     )
 
     gender = models.CharField(
         max_length=20,
-        blank=True
+        blank=True,
+        null=True
     )
 
     dob = models.DateField(
@@ -42,16 +44,17 @@ class Employee(models.Model):
 
     marital_status = models.CharField(
         max_length=20,
-        blank=True
+        blank=True,
+        null=True
     )
-
     address = models.TextField(
-        blank=True
+        blank=True,
+        null=True
     )
-
     emergency_contact = models.CharField(
         max_length=15,
-        blank=True
+        blank=True,
+        null=True
     )
 
     # EMPLOYMENT
@@ -66,17 +69,20 @@ class Employee(models.Model):
 
     designation = models.CharField(
         max_length=100,
-        blank=True
+        blank=True,
+        null=True
     )
 
     employment_type = models.CharField(
         max_length=50,
-        blank=True
+        blank=True,
+        null=True
     )
 
     reporting_manager = models.CharField(
         max_length=100,
-        blank=True
+        blank=True,
+        null=True
     )
 
     date_joined = models.DateField()
@@ -91,27 +97,32 @@ class Employee(models.Model):
 
     bank_name = models.CharField(
         max_length=100,
-        blank=True
+        blank=True,
+        null=True
     )
 
     bank_account = models.CharField(
         max_length=50,
-        blank=True
+        blank=True,
+        null=True
     )
 
     ifsc_code = models.CharField(
         max_length=20,
-        blank=True
+        blank=True,
+        null=True
     )
 
     pan_number = models.CharField(
         max_length=20,
-        blank=True
+        blank=True,
+        null=True
     )
 
     pf_number = models.CharField(
         max_length=30,
-        blank=True
+        blank=True,
+        null=True
     )
 
     # SYSTEM
