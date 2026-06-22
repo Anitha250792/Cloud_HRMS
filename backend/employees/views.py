@@ -82,6 +82,9 @@ def create_employee(request):
 
             emp_code=request.data.get("emp_code"),
             name=request.data.get("name"),
+            profile_photo=request.FILES.get(
+    "profile_photo"
+),
             email=email,
 
             phone=request.data.get("phone"),
@@ -110,9 +113,12 @@ def create_employee(request):
         )
 
         return Response(
-            EmployeeSerializer(employee).data,
-            status=status.HTTP_201_CREATED
-        )
+    EmployeeSerializer(
+        employee,
+        context={"request": request}
+    ).data,
+    status=status.HTTP_201_CREATED
+)
 
     except Exception as e:
         print("CREATE EMPLOYEE ERROR:", str(e))

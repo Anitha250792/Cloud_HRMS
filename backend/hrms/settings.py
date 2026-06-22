@@ -81,11 +81,6 @@ REST_FRAMEWORK = {
 
 
 
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-    "AUTH_HEADER_TYPES": ("Bearer",),
-}
 
 # ======================================================
 # 🧱 MIDDLEWARE
@@ -191,6 +186,9 @@ STATICFILES_STORAGE = (
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 # ======================================================
 # 🌍 CORS + CSRF (FIXED FOR JWT)
 # ======================================================
@@ -218,7 +216,7 @@ CORS_ALLOW_METHODS = [
 
 CSRF_TRUSTED_ORIGINS = [
     "https://cloud-hrms-1.onrender.com",
-    "https://cloud-hrms-frontend-1.onrender.com",
+    "https://cloud-hrms-frontend-2-0.onrender.com",
 ]
 
 CSRF_COOKIE_SECURE = True

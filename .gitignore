@@ -17,3 +17,4 @@ media/
 *.yml
 render.yaml
 
+node_modules

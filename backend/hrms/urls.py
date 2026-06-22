@@ -4,7 +4,8 @@ from django.views.generic import TemplateView
 
 from .views import RoleRedirectView, admin_dashboard_stats, health_check
 from accounts.views import RegisterView, LoginView
-
+from django.conf import settings
+from django.conf.urls.static import static
 
 
 urlpatterns = [
@@ -31,3 +32,9 @@ urlpatterns = [
     # SPA
     path("<path:path>", TemplateView.as_view(template_name="index.html")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(
+        settings.MEDIA_URL,
+        document_root=settings.MEDIA_ROOT
+    )
