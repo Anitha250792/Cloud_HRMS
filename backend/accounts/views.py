@@ -75,12 +75,12 @@ class LoginView(APIView):
         )
 
         response.set_cookie(
-            key="access_token",
-            value=access_token,
-            httponly=True,
-            secure=True,
-            samesite="None",
-            max_age=3600,
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=True,
+        samesite="None",
+        max_age=3600,
         )
 
         return response

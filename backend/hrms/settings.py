@@ -22,7 +22,7 @@ DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = [
     "cloud-hrms-1.onrender.com",
-    "cloud-hrms-frontend-1.onrender.com",
+    "cloud-hrms-frontend-2-0.onrender.com",
     "localhost",
     "127.0.0.1",
 ]
@@ -196,11 +196,13 @@ MEDIA_ROOT = BASE_DIR / "media"
 # ======================================================
 # 🌍 CORS + CSRF (FIXED FOR JWT)
 # ======================================================
-CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
     "https://cloud-hrms-frontend-2-0.onrender.com",
 ]
+
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [
     "authorization",
