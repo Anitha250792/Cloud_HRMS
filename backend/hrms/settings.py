@@ -75,11 +75,15 @@ INSTALLED_APPS = [
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "accounts.authentication.CookieJWTAuthentication",
     ),
 }
 
-
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
 
 
 # ======================================================
@@ -192,8 +196,11 @@ MEDIA_ROOT = BASE_DIR / "media"
 # ======================================================
 # 🌍 CORS + CSRF (FIXED FOR JWT)
 # ======================================================
+CORS_ALLOW_CREDENTIALS = True
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "https://cloud-hrms-frontend-2-0.onrender.com",
+]
 
 CORS_ALLOW_HEADERS = [
     "authorization",
@@ -259,3 +266,13 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 # ======================================================
 
 APPEND_SLASH = True
+
+SESSION_COOKIE_HTTPONLY = True
+
+CSRF_COOKIE_HTTPONLY = False
+
+SESSION_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SAMESITE = "None"
+
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True

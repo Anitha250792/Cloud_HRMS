@@ -39,9 +39,13 @@ class LoginView(APIView):
     permission_classes = []
 
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
+
+        serializer = LoginSerializer(
+            data=request.data
+        )
 
         if not serializer.is_valid():
+
             return Response(
                 serializer.errors,
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -49,13 +53,16 @@ class LoginView(APIView):
 
         user = serializer.validated_data["user"]
 
-        # 🔐 Generate JWT tokens
-        refresh = RefreshToken.for_user(user)
+        refresh = RefreshToken.for_user(
+            user
+        )
 
-        return Response(
+        access_token = str(
+            refresh.access_token
+        )
+
+        response = Response(
             {
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
                 "role": user.role,
                 "user": {
                     "id": user.id,
@@ -66,3 +73,14 @@ class LoginView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            secure=True,
+            samesite="None",
+            max_age=3600,
+        )
+
+        return response
