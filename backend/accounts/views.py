@@ -6,13 +6,50 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import RegisterSerializer, LoginSerializer
 
 
+# ===============================
+# REGISTER
+# ===============================
+
+class RegisterView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+
+        serializer = RegisterSerializer(
+            data=request.data
+        )
+
+        if serializer.is_valid():
+
+            serializer.save()
+
+            return Response(
+                {
+                    "message": "Registration Successful"
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+# ===============================
+# LOGIN
+# ===============================
+
 class LoginView(APIView):
     authentication_classes = []
     permission_classes = []
 
     def post(self, request):
 
-        serializer = LoginSerializer(data=request.data)
+        serializer = LoginSerializer(
+            data=request.data
+        )
 
         if not serializer.is_valid():
 
