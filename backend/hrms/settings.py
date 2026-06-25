@@ -224,6 +224,7 @@ CORS_ALLOW_METHODS = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
     "https://cloud-hrms-1.onrender.com",
     "https://cloud-hrms-frontend-2-0.onrender.com",
 ]
